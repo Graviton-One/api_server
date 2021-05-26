@@ -13,7 +13,11 @@ use gton_api_server::fee_giver::routes::{
     check_vote,
     get_vote_count,
 };
+use gton_api_server::gton_stats::routes::{
+    gton_cost,
+};
 use dotenv;
+use actix_cors::Cors;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct UserVote {
@@ -40,13 +44,24 @@ async fn main() -> std::io::Result<()> {
 
     // Start HTTP server
     use std::sync::Arc;
+    use actix_web::http;
     let config = Arc::new(config);
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+              .allowed_origin("https://www.rust-lang.org/")
+              .allowed_origin_fn(|origin, _req_head| {
+                  origin.as_bytes().ends_with(b".rust-lang.org")
+              })
+              .allowed_methods(vec!["GET", "POST"])
+              .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+              .allowed_header(http::header::CONTENT_TYPE)
+              .max_age(3600);
         App::new()
+            .wrap(cors)
             .data(pool.clone())
             .data(config.clone())
-            //.route("/api/gton_cost", web::get().to(gton_cost))
+            .route("/api/gton_cost", web::get().to(gton_cost))
             .route("/api/check_vote", web::post().to(check_vote))
             .route("/api/check_vote", web::get().to(get_vote_count))
     })
