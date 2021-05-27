@@ -48,12 +48,7 @@ async fn main() -> std::io::Result<()> {
     let config = Arc::new(config);
 
     HttpServer::new(move || {
-        let cors = Cors::default()
-            .allowed_origin("https://alpha.graviton.one")
-            .allowed_origin("https://v1.graviton.one")
-            .allowed_methods(vec!["GET", "POST"])
-            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
-            .allowed_header(header::CONTENT_TYPE);
+        let cors = Cors::permissve();
         App::new()
             .wrap(cors)
             .data(pool.clone())
