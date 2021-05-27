@@ -16,8 +16,14 @@ use gton_api_server::fee_giver::routes::{
 use gton_api_server::gton_stats::routes::{
     gton_cost,
 };
+use actix_web::http::header;
 use dotenv;
 use actix_cors::Cors;
+
+use gton_api_server::{
+    users::routes::users_routes,
+    gton_stats::routes::stats_routes,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct UserVote {
@@ -48,16 +54,16 @@ async fn main() -> std::io::Result<()> {
     let config = Arc::new(config);
 
     HttpServer::new(move || {
-        let cors = Cors::default()
-            .allowed_origin("https://alpha.graviton.one")
-            .allowed_origin("https://v1.graviton.one")
-            .allowed_methods(vec!["GET", "POST"])
-            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
-            .allowed_header(header::CONTENT_TYPE);
+        let cors = Cors::permissive();
         App::new()
             .wrap(cors)
             .data(pool.clone())
             .data(config.clone())
+            .service(
+                web::scope("/api")
+                    .configure(users_routes)
+                    .configure(stats_routes)
+            )
             .route("/api/gton_cost", web::get().to(gton_cost))
             .route("/api/check_vote", web::post().to(check_vote))
             .route("/api/check_vote", web::get().to(get_vote_count))

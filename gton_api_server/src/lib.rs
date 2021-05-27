@@ -10,6 +10,7 @@ pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 pub mod schema;
 pub mod fee_giver;
 pub mod gton_stats;
+pub mod users;
 
 use ethcontract::prelude::*;
 #[derive(Clone)]
