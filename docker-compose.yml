@@ -9,7 +9,6 @@ services:
     env_file:
       - ./gton_api_server/.env
     environment:
-      - DATABASE_URL=postgres://docker:sdfjksfu2jkl45g343b@postgres1:5432/diesel_db
       - RUST_BACKTRACE=1
     volumes:
       - ./gton_api_server/migrations:/gton_api_server/migrations
