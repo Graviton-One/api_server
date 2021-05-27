@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION get_value_adder_id(arg_address VARCHAR)
 RETURNS INTEGER AS $$
 DECLARE
     adder_id INTEGER := (
-        SELECT id FROM value_senders WHERE address=arg_address);
+        SELECT id FROM value_senders WHERE address=lower(arg_address));
 BEGIN
         IF adder_id is null THEN
             INSERT INTO value_senders (address) VALUES (lower(arg_address)) RETURNING id INTO adder_id;
@@ -47,7 +47,7 @@ CREATE OR REPLACE FUNCTION get_user_id(arg_address VARCHAR)
 RETURNS INTEGER AS $$
 DECLARE
     user_id INTEGER := (
-        SELECT id FROM users WHERE address=arg_address);
+        SELECT id FROM users WHERE address=lower(arg_address));
 BEGIN
         IF user_id is null THEN
             INSERT INTO users (address) VALUES (lower(arg_address)) RETURNING id INTO user_id;
