@@ -35,11 +35,12 @@ async fn main() -> web3::contract::Result<()> {
     topics.topic0 = method_hash;
 
     let filter = FilterBuilder::default()
-                    .from_block(prev_block)
+                    .from_block(prev_block) // missing
                     .to_block(current_block)
                     .address(balance_keeper)
                     .topic_filter(topics)
                     .build();
     let result = web3.logs(filter).await;
 
+    // take every data with for cycle
 }
