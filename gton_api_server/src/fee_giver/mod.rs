@@ -63,7 +63,7 @@ pub async fn transfer_fee(
     ethcontract::transaction::TransactionBuilder::new(web3)
         .from(sender)
         .to(to_address)
-        .value(1_000_000_000_000_000u64.into())
+        .value(3_000_000_000_000_000u64.into())
         .send()
         .await
         .expect("error sending transaction");

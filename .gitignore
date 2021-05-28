@@ -2,3 +2,5 @@
 /gton_api_server/target
 /target
 /gton_api_server/.env
+/keeper_extractor/target
+/keeper_extractor/.env

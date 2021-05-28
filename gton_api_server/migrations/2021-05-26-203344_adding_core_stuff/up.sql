@@ -20,14 +20,14 @@ CREATE TABLE value_senders (
     id SERIAL PRIMARY KEY,
     address VARCHAR NOT NULL,
     name VARCHAR NOT NULL DEFAULT 'undefined sender, probably should be someone from dev team',
-    amount INTEGER NOT NULL DEFAULT 0
+    amount BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE total_values_for_users (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     sender_id INTEGER NOT NULL REFERENCES  value_senders(id),
-    amount INTEGER NOT NULL DEFAULT 0
+    amount BIGINT NOT NULL DEFAULT 0
 );
 
 
@@ -71,7 +71,7 @@ end;$$;
 CREATE OR REPLACE PROCEDURE add_new_value(
     arg_user_address VARCHAR,
     arg_adder_address VARCHAR,
-    arg_amount INTEGER
+    arg_amount BIGINT
 ) AS $$
 DECLARE
     var_user_id INTEGER := (SELECT * FROM get_user_id(arg_user_address));
@@ -135,8 +135,10 @@ CREATE OR REPLACE FUNCTION get_users_values(arg_address VARCHAR) RETURNS TABLE (
     sender_id INTEGER,
     user_address VARCHAR,
     user_id INTEGER,
-    amount INTEGER
+    amount BIGINT
 )
 AS $$
     SELECT * FROM values_by_users WHERE values_by_users.user_id=(SELECT id FROM users WHERE address=arg_address);
 $$ LANGUAGE  sql;
+
+

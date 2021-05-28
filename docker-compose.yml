@@ -1,5 +1,17 @@
 version: '3'
 services:
+  keeper_extractor:
+    image: badconfig/keeper_extractor 
+    container_name: keeper_extractor
+    tty: true
+    env_file:
+      - ./keeper_extractor/.env
+    environment:
+      - RUST_BACKTRACE=1
+    volumes:
+      - ./keeper_extractor/migrations:/keeper_extractor/migrations
+    networks:
+      - app-network
   app:
     image: badconfig/gton_api_server 
     container_name: app_api_server
@@ -35,9 +47,9 @@ services:
     networks:
       - app-network
     volumes:
-      - pg_redrufus:/var/lib/postgresql/data
+      - pg_gton_api_server:/var/lib/postgresql/data
 volumes:
-  pg_redrufus:
+  pg_gton_api_server:
 networks:
   app-network:
     driver: bridge
