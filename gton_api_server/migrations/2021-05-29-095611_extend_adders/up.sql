@@ -1,6 +1,7 @@
 -- Your SQL goes here
 DROP TABLE value_senders CASCADE;
 DROP TABLE total_values_for_users CASCADE;
+DROP FUNCTION get_users_values;
 
 CREATE TABLE value_senders (
     id SERIAL PRIMARY KEY,
