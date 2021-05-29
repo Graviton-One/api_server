@@ -24,6 +24,14 @@ table! {
 }
 
 table! {
+    pollers_data (id) {
+        id -> Int4,
+        block_id -> Int8,
+        poller_id -> Int4,
+    }
+}
+
+table! {
     total_values_for_users (id) {
         id -> Int4,
         user_id -> Int4,
@@ -67,6 +75,7 @@ allow_tables_to_appear_in_same_query!(
     achievements,
     achievements_to_users,
     gton_price,
+    pollers_data,
     total_values_for_users,
     users,
     value_senders,

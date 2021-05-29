@@ -3,11 +3,15 @@ FROM rustlang/rust:nightly as builder
 RUN USER=root cargo new --bin keeper_extractor
 WORKDIR /keeper_extractor
 
+# copy over your manifests
 COPY ./Cargo.toml ./Cargo.toml
 
+# this build step will cache your dependencies
 RUN cargo build --release
 RUN rm src/*.rs
 
+# copy your source tree
+RUN rm ./target/release/deps/keeper_extractor*
 COPY ./src ./src
 
 RUN cargo build --release
@@ -25,8 +29,15 @@ RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /v
 
 COPY --from=builder /keeper_extractor/target/release/keeper_extractor /keeper_extractor/keeper_extractor
 WORKDIR /keeper_extractor/
+<<<<<<< HEAD
 EXPOSE 8088
 
+=======
+>>>>>>> cc8753dbd2362f25860485f58d38c91a2e99b9c3
 
 CMD ["/keeper_extractor/keeper_extractor"]
 
+<<<<<<< HEAD
+=======
+CMD ["/keeper_extractor/keeper_extractor"]
+>>>>>>> cc8753dbd2362f25860485f58d38c91a2e99b9c3
