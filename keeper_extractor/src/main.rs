@@ -49,11 +49,11 @@ async fn main() -> web3::contract::Result<()> {
         let result = web3.logs(filter).await;
         for block in result {
             let bytes = block.data;
-            let user_address = bytes.slice(0, 20);
+            let user_address = hex::encode(bytes.slice(0, 20));
             println("Got address {}", user_address)
-            let giver_address = bytes.slice(20, 40);
+            let giver_address = hex::encode(bytes.slice(20, 40));
             println("Got second address {}", giver_address)
-            let amount = bytes.slice_from(40);
+            let amount = hex::encode(bytes.slice_from(40));
             println("Got amount {}", amount)
         }
 

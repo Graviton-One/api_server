@@ -22,23 +22,26 @@ pub struct Data {
 
 impl Blocks {
     pub async fn save(
-        &self,
-        conn: &PgConnection, 
-    ) -> Result<bool> {
-        diesel::sql_query("INSERT INTO pollers_data (block_id, poller_id) VALUES ($1, $2)")
-            .bind::<diesel::sql_types::Integer,_>(self.block_id)
-            .bind::<diesel::sql_types::Integer,_>(self.poller_id)
-            .get_result::<Data>(conn)
-            .map_err(|e|e.into())
-            .map(|r|r.res)
+        conn: &PgConnection,
+        poller_id: i32,
+        new_block_id: i32,
+    ) -> Result<()> {
+            diesel::update(pollers_data::table)
+                .filter(pollers_data::poller_id.eq(poller_id))
+                .set(
+                    pollers_data::block_id.eq(new_block_id),
+                )
+                .execute(conn)
+                .unwrap();
+                Ok(())
     }
 
     pub async fn get(
-        &self,
         conn: &PgConnection, 
-    ) -> Result<Data> {
+        poller_id: i32
+    ) -> Result<Self> {
         pollers_data::table
-            .filter(pollers_data::poller_id.eq(self.poller_id))
+            .filter(pollers_data::poller_id.eq(poller_id))
             .get_result(conn)
             .map_err(|e|e.into())
     }

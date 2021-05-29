@@ -1,8 +1,15 @@
 FROM rustlang/rust:nightly as builder
 
-WORKDIR /api
-COPY . .
-RUN cargo clean
+RUN USER=root cargo new --bin keeper_extractor
+WORKDIR /keeper_extractor
+
+COPY ./Cargo.toml ./Cargo.toml
+
+RUN cargo build --release
+RUN rm src/*.rs
+
+COPY ./src ./src
+
 RUN cargo build --release
 
 FROM debian:buster-slim
@@ -16,9 +23,10 @@ RUN apt-get update && \
         --no-install-recommends
 RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /api/target/release/keeper_extractor /api/keeper_extractor
-WORKDIR /api
-EXPOSE 8000
+COPY --from=builder /keeper_extractor/target/release/keeper_extractor /keeper_extractor/keeper_extractor
+WORKDIR /keeper_extractor/
+EXPOSE 8088
 
 
-CMD ["/api/keeper_extractor"]
+CMD ["/keeper_extractor/keeper_extractor"]
+
