@@ -104,6 +104,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("err creating http");
     let web3 = web3::Web3::new(http);
 
+    let dig = U256::from_dec_str(&std::env::var("DIGITS_DIVISION").unwrap()).unwrap();
     loop {
         let num = PollerState::get(1, &pool.get().unwrap()).await;
         let prev_block = BlockNumber::Number(num.into());
@@ -136,8 +137,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("from {}",from);
 
             let mut amount: U256 = block.topics[3].as_bytes().into();
-            amount = amount.checked_div(U256::from_dec_str("100000000000000")
-                .unwrap()).unwrap();
+            amount = amount.checked_div(U256::from_dec_str("10")
+                .unwrap().pow(dig)).unwrap();
             let amount: i32 = amount.as_u128() as i32;
             println!("amount {}", amount);
 
@@ -151,6 +152,6 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         PollerState::save(1, current_block_num.as_u64() as i32, &pool.get().unwrap()).await;
 
-        delay_for(Duration::from_secs((60*60) as u64)).await;
+        delay_for(Duration::from_secs((60) as u64)).await;
     }
 }

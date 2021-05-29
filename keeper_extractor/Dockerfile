@@ -11,9 +11,8 @@ RUN cargo build --release
 RUN rm src/*.rs
 
 # copy your source tree
+RUN rm ./target/release/deps/keeper_extractor*
 COPY ./src ./src
-#COPY ./contracts ./contracts
-#COPY . .
 
 RUN cargo build --release
 
