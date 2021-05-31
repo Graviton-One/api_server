@@ -3,6 +3,7 @@ services:
   keeper_extractor:
     image: badconfig/keeper_extractor 
     container_name: keeper_extractor
+    restart: unless-stopped
     tty: true
     env_file:
       - ./keeper_extractor/.env
@@ -15,6 +16,7 @@ services:
   app:
     image: badconfig/gton_api_server 
     container_name: app_api_server
+    restart: unless-stopped
     tty: true
     ports:
       - "8088:8088"

@@ -30,7 +30,7 @@ use serde::{
 pub struct Data {
     pub from: String,
     pub to: String,
-    pub amount: i32,
+    pub amount: i64,
 }
 
 impl Data {
@@ -41,7 +41,7 @@ impl Data {
         diesel::sql_query("call add_new_value($1,$2,$3)")
             .bind::<diesel::sql_types::Varchar,_>(self.to.clone())
             .bind::<diesel::sql_types::Varchar,_>(self.from.clone())
-            .bind::<diesel::sql_types::Integer,_>(self.amount)
+            .bind::<diesel::sql_types::BigInt,_>(self.amount)
             .execute(conn)
             .unwrap();
     }
@@ -139,7 +139,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut amount: U256 = block.topics[3].as_bytes().into();
             amount = amount.checked_div(U256::from_dec_str("10")
                 .unwrap().pow(dig)).unwrap();
-            let amount: i32 = amount.as_u128() as i32;
+            let amount: i64 = amount.as_u128() as i64;
             println!("amount {}", amount);
 
             let d = Data{
