@@ -42,7 +42,7 @@ async fn main() -> std::io::Result<()> {
             .expect("exec err");
 
         println!("value {} going to sleep for 1 hour",val);
-        delay_for(Duration::from_secs((60) as u64)).await;
+        delay_for(Duration::from_secs((60 * 60) as u64)).await;
     }
     Ok(())
 }
