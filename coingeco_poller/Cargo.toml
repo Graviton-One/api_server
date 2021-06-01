@@ -1,5 +1,5 @@
 [package]
-name = "ftm_poller"
+name = "coingeco_poller"
 version = "0.1.0"
 authors = ["GooGrand <55867268+GooGrand@users.noreply.github.com>"]
 edition = "2018"
@@ -7,10 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ethcontract = "0.11.3"
-web3 = "0.15.0"
-hex-literal = "0.3.1"
 tokio = {version = "0.2", features = ["full"]}
 tokio-diesel = "0.3.0"
 chrono = "0.4.19"
 diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono"] }
+reqwest = { version = "0.10.10", features = ["json"]}
+serde_json = { version = "1.0.64"}
+dotenv = "0.15.0"

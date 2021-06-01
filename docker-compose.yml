@@ -1,5 +1,16 @@
 version: '3'
 services:
+  coingeco_poller:
+    image: badconfig/coingeco_poller 
+    container_name: coingeco_poller
+    restart: unless-stopped
+    tty: true
+    env_file:
+      - ./coingeco_poller/.env
+    environment:
+      - RUST_BACKTRACE=1
+    networks:
+      - app-network
   keeper_extractor:
     image: badconfig/keeper_extractor 
     container_name: keeper_extractor
