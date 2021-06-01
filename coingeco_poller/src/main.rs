@@ -36,7 +36,7 @@ async fn main() -> std::io::Result<()> {
         let val = resp["market_data"]["current_price"]["usd"].as_f64().unwrap();
         //println!("start push");
         diesel::sql_query("INSERT INTO gton_price (price) VALUES ($1)")
-            .bind::<diesel::sql_types::BigInt,_>((val * 100f64) as i64)
+            .bind::<diesel::sql_types::Double,_>(val)
             .execute_async(&pool)
             .await
             .expect("exec err");
