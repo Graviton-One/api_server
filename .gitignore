@@ -4,3 +4,5 @@
 /gton_api_server/.env
 /keeper_extractor/target
 /keeper_extractor/.env
+/coingeco_poller/target
+/coingeco_poller/.env

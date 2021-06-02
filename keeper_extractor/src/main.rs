@@ -30,7 +30,7 @@ use serde::{
 pub struct Data {
     pub from: String,
     pub to: String,
-    pub amount: i32,
+    pub amount: i64,
 }
 
 impl Data {
@@ -41,7 +41,7 @@ impl Data {
         diesel::sql_query("call add_new_value($1,$2,$3)")
             .bind::<diesel::sql_types::Varchar,_>(self.to.clone())
             .bind::<diesel::sql_types::Varchar,_>(self.from.clone())
-            .bind::<diesel::sql_types::Integer,_>(self.amount)
+            .bind::<diesel::sql_types::BigInt,_>(self.amount)
             .execute(conn)
             .unwrap();
     }
@@ -50,14 +50,14 @@ impl Data {
 #[derive(Serialize,Deserialize,Queryable)]
 pub struct PollerState {
     id: i32,
-    block_id: i32,
+    block_id: i64,
     poller_id: i32, 
 }
 
 impl PollerState {
     pub async fn save(
         id: i32,
-        num: i32,
+        num: i64,
         conn: &PgConnection, 
     ) {
         diesel::update(pollers_data::table)
@@ -70,11 +70,11 @@ impl PollerState {
     pub async fn get(
         id: i32,
         conn: &PgConnection, 
-    ) -> i32 {
+    ) -> i64 {
         pollers_data::table
             .filter(pollers_data::poller_id.eq(id))
-            .select(pollers_data::poller_id)
-            .get_result::<i32>(conn)
+            .select(pollers_data::block_id)
+            .get_result::<i64>(conn)
             .unwrap()
     }
 }
@@ -123,24 +123,24 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("starting from block {} to block {} ...",num,current_block_num);
         for block in result {
             use std::ops::Index;
-            println!("transaction id {}", block.transaction_hash.unwrap());
+            //println!("transaction id {}", block.transaction_hash.unwrap());
             let to = hex::encode(block.topics[2]);
             let to = &to[to.len()-40..to.len()];
             let to = "0x".to_string() + to;
             let to = to.to_lowercase();
-            println!("to {}", to);
+            //println!("to {}", to);
 
             let from = hex::encode(block.topics[1]);
             let from = &from[from.len()-40..from.len()];
             let from = "0x".to_string() + from;
             let from = from.to_lowercase();
-            println!("from {}",from);
+            //println!("from {}",from);
 
             let mut amount: U256 = block.topics[3].as_bytes().into();
             amount = amount.checked_div(U256::from_dec_str("10")
                 .unwrap().pow(dig)).unwrap();
-            let amount: i32 = amount.as_u128() as i32;
-            println!("amount {}", amount);
+            let amount: i64 = amount.as_u128() as i64;
+            //println!("amount {}", amount);
 
             let d = Data{
                 from: from,
@@ -148,9 +148,12 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 amount: amount,
             };
             d.insert(&pool.get().unwrap()).await;
-            println!("---------------------------------");
+            //println!("---------------------------------");
         }
-        PollerState::save(1, current_block_num.as_u64() as i32, &pool.get().unwrap()).await;
+        PollerState::save(1, 
+                (current_block_num.as_u64()+1) as i64, 
+                &pool.get().unwrap())
+            .await;
 
         delay_for(Duration::from_secs((60) as u64)).await;
     }

@@ -13,6 +13,7 @@ use diesel::sql_types::{
     Integer,
     Varchar,
     Nullable,
+    Bigint,
 };
 
 #[derive(Serialize, Deserialize, QueryableByName, Debug, Clone)]
@@ -27,8 +28,8 @@ pub struct UsersValues {
     pub user_address: String,
     #[sql_type="Integer"]
     pub user_id: i32,
-    #[sql_type="Integer"]
-    pub amount: i32,
+    #[sql_type="Bigint"]
+    pub amount: i64,
 }
 
 impl UsersValues {
