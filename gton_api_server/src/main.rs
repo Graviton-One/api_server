@@ -65,8 +65,8 @@ async fn main() -> std::io::Result<()> {
                     .configure(stats_routes)
                     .route("/check_vote", web::post().to(check_vote))
                     .route("/check_vote", web::get().to(get_vote_count))
+                    .route("/gton_cost", web::post().to(gton_cost))
             )
-            .route("/api/gton_cost", web::get().to(gton_cost))
     })
     .bind("0.0.0.0:8088")?
     .run()
