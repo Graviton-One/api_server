@@ -41,7 +41,7 @@ pub async fn update_voting (
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let conn = pool.get()?;
-    let r = VotingInstance::update(data.into_inner(), &conn).await;
+    let r = VotingInstance::update(data.into_inner(), &conn).await?;
     Ok(HttpResponse::Ok().json(r))
 }
 pub async fn insert_voting (
@@ -49,6 +49,6 @@ pub async fn insert_voting (
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let conn = pool.get()?;
-    let r = data.insert(&conn).await;
+    let r = data.insert(&conn).await?;
     Ok(HttpResponse::Ok().json(r))
 }
