@@ -66,6 +66,19 @@ table! {
     }
 }
 
+table! {
+    votings (id) {
+        id -> Int4,
+        title -> Varchar,
+        date_from -> Varchar,
+        date_to -> Varchar,
+        description -> Text,
+        details -> Text,
+        proposer -> Varchar,
+        forum_link -> Varchar,
+    }
+}
+
 joinable!(achievements_to_users -> achievements (achievement_id));
 joinable!(achievements_to_users -> users (user_id));
 joinable!(total_values_for_users -> users (user_id));
