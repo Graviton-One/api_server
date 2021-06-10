@@ -11,17 +11,6 @@ CREATE TABLE gton_price (
     market_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE votings (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR NOT NULL,
-    date_from VARCHAR NOT NULL,
-    date_to VARCHAR NOT NULL,
-    description TEXT NOT NULL,
-    details VARCHAR NOT NULL,
-    proposer VARCHAR NOT NULL,
-    forum_link VARCHAR NOT NULL
-);
-
 create or replace procedure GiveFee(
    arg_user_addr varchar,
    arg_vote_id int,
