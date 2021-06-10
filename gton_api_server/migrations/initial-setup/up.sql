@@ -19,8 +19,8 @@ CREATE TABLE votings (
     description TEXT NOT NULL,
     details VARCHAR NOT NULL,
     proposer VARCHAR NOT NULL,
-    forum_link VARCHAR NOT NULL,
-)
+    forum_link VARCHAR NOT NULL
+);
 
 create or replace procedure GiveFee(
    arg_user_addr varchar,

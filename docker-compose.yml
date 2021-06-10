@@ -25,7 +25,7 @@ services:
     networks:
       - app-network
   app:
-    image: badconfig/gton_api_server 
+    image: googrand/server 
     container_name: app_api_server
     restart: unless-stopped
     tty: true
