@@ -1,18 +1,14 @@
 use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
-    ApiError,
-    ErrorType,
 };
 use serde::{
     Serialize,
     Deserialize,
 };
-use chrono::NaiveDateTime;
 use diesel::sql_types::{
     Integer,
     Varchar,
-    Nullable,
     Bigint,
 };
 

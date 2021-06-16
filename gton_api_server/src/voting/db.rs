@@ -2,8 +2,6 @@ use crate::schema::votings;
 use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
-    ApiError,
-    ErrorType,
 };
 use serde::{
     Serialize,
@@ -32,6 +30,7 @@ pub struct UpdateVoting {
     details: Option<String>,
     proposer: Option<String>,
     forum_link: Option<String>,
+    active: Option<bool>
 }
 
 #[derive(Insertable,Serialize,Deserialize,Queryable,Clone,Debug)]
@@ -45,6 +44,7 @@ pub struct VotingInstance {
     details: String,
     proposer: String,
     forum_link: String,
+    active: bool,
 }
 
 impl VotingInstance {
@@ -75,6 +75,16 @@ impl VotingInstance {
     ) -> Result<Vec<VotingInstance>> {
         votings::table
             .filter(votings::id.eq(id))
+            .get_results::<VotingInstance>(conn)
+            .map_err(|e|e.into())
+    }
+
+    pub async fn get_active(
+        active: bool,
+        conn: &PgConnection, 
+    ) -> Result<Vec<VotingInstance>> {
+        votings::table
+            .filter(votings::active.eq(active))
             .get_results::<VotingInstance>(conn)
             .map_err(|e|e.into())
     }

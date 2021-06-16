@@ -1,9 +1,6 @@
-use crate::schema::users;
 use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
-    ApiError,
-    ErrorType,
 };
 use serde::{
     Serialize,

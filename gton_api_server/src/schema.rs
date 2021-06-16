@@ -76,6 +76,7 @@ table! {
         details -> Text,
         proposer -> Varchar,
         forum_link -> Varchar,
+        active -> Bool,
     }
 }
 

@@ -6,5 +6,6 @@ CREATE TABLE votings (
     description TEXT NOT NULL,
     details VARCHAR NOT NULL,
     proposer VARCHAR NOT NULL,
-    forum_link VARCHAR NOT NULL
+    forum_link VARCHAR NOT NULL,
+    active BOOLEAN DEFAULT true
 );

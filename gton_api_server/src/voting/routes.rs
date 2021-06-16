@@ -20,6 +20,7 @@ pub fn voting_routes(cfg: &mut web::ServiceConfig) {
 #[derive(Serialize,Deserialize)]
 pub struct ID {
     id: Option<i32>,
+    active: Option<bool>
 }
 
 pub async fn get_votings (
@@ -27,10 +28,12 @@ pub async fn get_votings (
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let conn = pool.get()?;
-    let r = if data.id.is_none() {
-        VotingInstance::get_all(&conn).await?
-    } else {
+    let r = if data.id.is_some() {
         VotingInstance::get(data.id.unwrap(), &conn).await?
+    } else if data.active.is_some() {
+        VotingInstance::get_active(data.active.unwrap(), &conn).await?
+    } else {
+        VotingInstance::get_all(&conn).await?
     };
 
     Ok(HttpResponse::Ok().json(r))

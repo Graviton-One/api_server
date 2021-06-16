@@ -2,8 +2,6 @@ use crate::schema::voters;
 use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
-    ApiError,
-    ErrorType,
 };
 use serde::{
     Serialize,
