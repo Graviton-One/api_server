@@ -6,3 +6,5 @@
 /keeper_extractor/.env
 /coingeco_poller/target
 /coingeco_poller/.env
+/volume_poller/.env
+/volume_poller/target

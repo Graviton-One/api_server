@@ -24,6 +24,17 @@ table! {
 }
 
 table! {
+    uni_stats (id) {
+        id -> Int4,
+        tvl -> Int8,
+        volume -> Int8,
+        addresses_count -> Int4,
+        apy -> Int4,
+        date -> Timestamp,
+    }
+}
+
+table! {
     pollers_data (id) {
         id -> Int4,
         block_id -> Int8,

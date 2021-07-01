@@ -12,6 +12,7 @@ pub mod fee_giver;
 pub mod gton_stats;
 pub mod users;
 pub mod voting;
+pub mod pool_stats;
 
 use ethcontract::prelude::*;
 #[derive(Clone)]

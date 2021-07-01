@@ -24,6 +24,7 @@ use gton_api_server::{
     users::routes::users_routes,
     gton_stats::routes::stats_routes,
     voting::routes::voting_routes,
+    pool_stats::routes::pool_routes,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -65,6 +66,7 @@ async fn main() -> std::io::Result<()> {
                     .configure(users_routes)
                     .configure(stats_routes)
                     .configure(voting_routes)
+                    .configure(pool_routes)
                     .route("/check_vote", web::post().to(check_vote))
                     .route("/check_vote", web::get().to(get_vote_count))
                     .route("/gton_cost", web::post().to(gton_cost))

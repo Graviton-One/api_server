@@ -1,27 +1,38 @@
 version: '3'
 services:
-  coingeco_poller:
-    image: badconfig/coingeco_poller 
-    container_name: coingeco_poller
+  # coingeco_poller:
+  #   image: badconfig/coingeco_poller 
+  #   container_name: coingeco_poller
+  #   restart: unless-stopped
+  #   tty: true
+  #   env_file:
+  #     - ./coingeco_poller/.env
+  #   environment:
+  #     - RUST_BACKTRACE=1
+  #   networks:
+  #     - app-network
+  # keeper_extractor:
+  #   image: badconfig/keeper_extractor 
+  #   container_name: keeper_extractor
+  #   restart: unless-stopped
+  #   tty: true
+  #   env_file:
+  #     - ./keeper_extractor/.env
+  #   environment:
+  #     - RUST_BACKTRACE=1
+  #   volumes:
+  #     - ./keeper_extractor/migrations:/keeper_extractor/migrations
+  #   networks:
+  #     - app-network
+  volume_poller:
+    image: googrand/volume_poller 
+    container_name: volume_poller
     restart: unless-stopped
     tty: true
     env_file:
-      - ./coingeco_poller/.env
+      - ./volume_poller/.env
     environment:
       - RUST_BACKTRACE=1
-    networks:
-      - app-network
-  keeper_extractor:
-    image: badconfig/keeper_extractor 
-    container_name: keeper_extractor
-    restart: unless-stopped
-    tty: true
-    env_file:
-      - ./keeper_extractor/.env
-    environment:
-      - RUST_BACKTRACE=1
-    volumes:
-      - ./keeper_extractor/migrations:/keeper_extractor/migrations
     networks:
       - app-network
   app:
@@ -49,7 +60,7 @@ services:
   #     - app-network
   postgres:
     image: "postgres:12.6"
-    container_name: postgres1
+    container_name: postgres2
     restart: unless-stopped
     ports:
       - "5432:5432"

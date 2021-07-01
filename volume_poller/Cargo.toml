@@ -1,0 +1,18 @@
+[package]
+name = "volume_poller"
+version = "0.1.0"
+authors = ["GooGrand <55867268+GooGrand@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+web3 = "0.15.0"
+tokio = {version = "0.2", features = ["macros","rt-threaded", "full"]}
+tokio-diesel = "0.3.0"
+chrono = "0.4.19"
+diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono"] }
+hex = "0.4.3"
+serde = "1.0.126"
+dotenv = "0.15.0"
+diesel_migrations = "1.4.0"

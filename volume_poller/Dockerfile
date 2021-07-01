@@ -1,7 +1,7 @@
 FROM rustlang/rust:nightly as builder
 
-RUN USER=root cargo new --bin keeper_extractor
-WORKDIR /keeper_extractor
+RUN USER=root cargo new --bin volume_poller
+WORKDIR /volume_poller
 
 # copy over your manifests
 COPY ./Cargo.toml ./Cargo.toml
@@ -11,10 +11,10 @@ RUN cargo build --release
 RUN rm src/*.rs
 
 # copy your source tree
-RUN rm ./target/release/deps/keeper_extractor*
 COPY ./src ./src
 
 RUN cargo build --release
+
 
 FROM debian:buster-slim
 
@@ -27,9 +27,7 @@ RUN apt-get update && \
         --no-install-recommends
 RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /keeper_extractor/target/release/keeper_extractor /keeper_extractor/keeper_extractor
-WORKDIR /keeper_extractor/
-EXPOSE 8088
+COPY --from=builder /volume_poller/target/release/volume_poller /volume_poller/volume_poller
+WORKDIR /volume_poller
 
-CMD ["/keeper_extractor/keeper_extractor"]
-
+CMD ["/volume_poller/volume_poller"]
