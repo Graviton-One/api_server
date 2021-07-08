@@ -225,6 +225,13 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             balance_keeper, 
             farmer, 
             pool.clone()).await;
+        farms_tracker(
+            &web3, 
+            prev_block, 
+            current_block, 
+            farm_method_topic, 
+            farmer, 
+            pool.clone()).await;
         PollerState::save(1, 
                 (current_block_num.as_u64()+1) as i64, 
                 &pool.get().unwrap())

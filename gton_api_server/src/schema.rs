@@ -47,7 +47,7 @@ table! {
         id -> Int4,
         user_id -> Int4,
         sender_id -> Int4,
-        amount -> Int4,
+        amount -> Numeric,
     }
 }
 
@@ -64,7 +64,7 @@ table! {
         id -> Int4,
         address -> Varchar,
         name -> Varchar,
-        amount -> Int4,
+        amount -> Numeric,
     }
 }
 
