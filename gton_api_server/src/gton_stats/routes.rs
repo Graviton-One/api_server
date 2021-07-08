@@ -14,7 +14,7 @@ use actix_web_dev::error::{
 
 pub fn stats_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/stats")
-        .route("/price", web::get().to(gton_cost))
+        .route("/price", web::post().to(gton_cost))
         .route("/users_values", web::get().to(total_by_users))
         .route("/total_values", web::get().to(total_values))
     );
