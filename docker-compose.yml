@@ -25,7 +25,7 @@ services:
   #   networks:
   #     - app-network
   volume_poller:
-    image: googrand/volume_poller 
+    image: badconfig/keeper_extractor 
     container_name: volume_poller
     restart: unless-stopped
     tty: true

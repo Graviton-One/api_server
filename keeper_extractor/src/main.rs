@@ -5,9 +5,10 @@ use tokio::time::{
     delay_for, 
       Duration
 };
-use bigdecimal::Bigdecimal;
+use bigdecimal::BigDecimal;
 use diesel_migrations::run_pending_migrations;
 use tokio_diesel::*;
+use std::str::FromStr;
 
 use web3::transports::Http;
 use web3::types::*;
@@ -29,11 +30,10 @@ use serde::{
     Deserialize,
 };
 
-#[derive(Serialize,Deserialize)]
 pub struct Data {
     pub from: String,
     pub to: String,
-    pub amount: Bigdecimal,
+    pub amount: BigDecimal,
 }
 
 impl Data {
@@ -44,7 +44,7 @@ impl Data {
         diesel::sql_query("call add_new_value($1,$2,$3)")
             .bind::<diesel::sql_types::Varchar,_>(self.to.clone())
             .bind::<diesel::sql_types::Varchar,_>(self.from.clone())
-            .bind::<diesel::sql_types::Numeric,_>(self.amount)
+            .bind::<diesel::sql_types::Numeric,_>(self.amount.clone())
             .execute(conn)
             .unwrap();
     }
@@ -83,7 +83,7 @@ impl PollerState {
 }
 
 pub async fn farms_tracker(
-    web3: web3::Web3<Http>,
+    web3: &web3::Web3<Http>,
     prev_block: BlockNumber, 
     current_block: BlockNumber,
     farm_method_topic: H256,
@@ -120,7 +120,7 @@ pub async fn farms_tracker(
             let d = Data{
                 from: from,
                 to: to,
-                amount: amount,
+                amount: BigDecimal::from_str(&amount.to_string()).unwrap(),
             };
             d.insert(&pool.get().unwrap()).await;
             //println!("---------------------------------");
@@ -128,7 +128,7 @@ pub async fn farms_tracker(
 }
 
 pub async fn plain_tracker(
-    web3: web3::Web3<Http>,
+    web3: &web3::Web3<Http>,
     prev_block: BlockNumber, 
     current_block: BlockNumber,
     method_topic: H256,
@@ -171,7 +171,7 @@ pub async fn plain_tracker(
             let d = Data{
                 from: from,
                 to: to.to_string(),
-                amount: amount,
+                amount: BigDecimal::from_str(&amount.to_string()).unwrap(),
             };
             d.insert(&pool.get().unwrap()).await;
             //println!("---------------------------------");
@@ -218,13 +218,13 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let current_block = BlockNumber::Number(current_block_num);
 
         plain_tracker(
-            web3, 
+            &web3, 
             prev_block, 
             current_block, 
             add_method_topic, 
             balance_keeper, 
             farmer, 
-            pool).await;
+            pool.clone()).await;
         PollerState::save(1, 
                 (current_block_num.as_u64()+1) as i64, 
                 &pool.get().unwrap())

@@ -11,7 +11,7 @@ web3 = "0.15.0"
 tokio = {version = "0.2", features = ["macros","rt-threaded", "full"]}
 tokio-diesel = "0.3.0"
 chrono = "0.4.19"
-bigdecimal = "0.2.0"
+bigdecimal = "0.1.0"
 diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono","numeric"] }
 hex = "0.4.3"
 serde = "1.0.126"
