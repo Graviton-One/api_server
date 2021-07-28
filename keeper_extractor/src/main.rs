@@ -38,14 +38,22 @@ pub struct Data {
 
 impl Data {
     pub async fn insert(
-        &self,
+        data: Vec<Self>,
         conn: &PgConnection,
     ) {
-        diesel::sql_query("call add_new_value($1,$2,$3)")
-            .bind::<diesel::sql_types::Varchar,_>(self.to.clone())
-            .bind::<diesel::sql_types::Varchar,_>(self.from.clone())
-            .bind::<diesel::sql_types::Numeric,_>(self.amount.clone())
-            .execute(conn)
+        conn.build_transaction()
+            .read_write()
+            .run::<_, diesel::result::Error, _>(|| {
+                for el in data {
+                    diesel::sql_query("select * from add_new_value_func($1,$2,$3)")
+                        .bind::<diesel::sql_types::Varchar,_>(el.to.clone())
+                        .bind::<diesel::sql_types::Varchar,_>(el.from.clone())
+                        .bind::<diesel::sql_types::Numeric,_>(el.amount.clone())
+                        .execute(conn)
+                        .unwrap();
+                }
+                Ok(())
+            })
             .unwrap();
     }
 }
@@ -89,7 +97,7 @@ pub async fn farms_tracker(
     farm_method_topic: H256,
     farm_address: Address,
     pool: r2d2::Pool<r2d2::ConnectionManager<PgConnection>>,
-) {
+) -> Vec<Data> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(farm_method_topic);
 
@@ -100,31 +108,30 @@ pub async fn farms_tracker(
                     .topic_filter(topics)
                     .build();
         let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
-        println!("starting from block {:?} to block {:?} ...",prev_block,current_block);
+        //println!("starting from block {:?} to block {:?} ...",prev_block,current_block);
+        let mut r: Vec<Data> = Vec::new();
         for block in result {
             use std::ops::Index;
-            //println!("transaction id {}", block.transaction_hash.unwrap());
-            let to: U256 = block.topics[3].as_bytes().into();
-            let to = to.to_string();
-            //println!("to {}", to);
+                let to: U256 = block.topics[3].as_bytes().into();
+                let to = to.to_string();
 
-            let from = hex::encode(block.topics[2]);
-            let from = &from[from.len()-40..from.len()];
-            let from = "0x".to_string() + from;
-            let from = from.to_lowercase();
-            //println!("from {}",from);
+                let from = hex::encode(block.topics[2]);
+                let from = &from[from.len()-40..from.len()];
+                let from = "0x".to_string() + from;
+                let from = from.to_lowercase();
 
-            let amount: U256 = block.data.0.index(32..64).into();
-            //println!("amount {}", amount);
-
-            let d = Data{
-                from: from,
-                to: to,
-                amount: BigDecimal::from_str(&amount.to_string()).unwrap(),
-            };
-            d.insert(&pool.get().unwrap()).await;
-            //println!("---------------------------------");
+                let amount: U256 = block.data.0.index(32..64).into();
+                let amount = BigDecimal::from_str(&amount.to_string()).unwrap();
+                println!("TRANSACTION {:?}",block.transaction_hash);
+                println!("am: {}",amount);
+                let d = Data{
+                    from: from,
+                    to: to,
+                    amount: amount,
+                };
+            r.push(d);
         }
+        r
 }
 
 pub async fn plain_tracker(
@@ -135,7 +142,7 @@ pub async fn plain_tracker(
     balance_keeper: Address,
     farm_address: Address,
     pool: r2d2::Pool<r2d2::ConnectionManager<PgConnection>>,
-) {
+) -> Vec<Data> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(method_topic);
 
@@ -146,36 +153,36 @@ pub async fn plain_tracker(
                     .topic_filter(topics)
                     .build();
         let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
-        println!("starting from block {:?} to block {:?} ...",prev_block,current_block);
+        //println!("starting from block {:?} to block {:?} ...",prev_block,current_block);
+        let mut r: Vec<Data> = Vec::new();
         for block in result {
             use std::ops::Index;
-            //println!("transaction id {}", block.transaction_hash.unwrap());
-            let to = block.topics[2].as_bytes();
-            let to: U256 = to.into();
-            //println!("to {}", to);
-
 
             let from = hex::encode(block.topics[1]);
             let from = &from[from.len()-40..from.len()];
             let t: Address = from.parse().unwrap();
+
+            println!("TRANSACTION {:?}",block.transaction_hash);
+            println!("from: {:?} == farm: {:?}",t,farm_address);
             if t == farm_address {
+                println!("skipping");
                 continue;
             }
+            let to = block.topics[2].as_bytes();
+            let to: U256 = to.into();
             let from = "0x".to_string() + from;
             let from = from.to_lowercase();
-            //println!("from {}",from);
 
-            let mut amount: U256 = block.data.0.index(0..32).into();
-            //println!("amount {}", amount);
+            let amount: U256 = block.data.0.index(0..32).into();
 
             let d = Data{
                 from: from,
                 to: to.to_string(),
                 amount: BigDecimal::from_str(&amount.to_string()).unwrap(),
             };
-            d.insert(&pool.get().unwrap()).await;
-            //println!("---------------------------------");
+            r.push(d);
         }
+        r
 }
 
 #[tokio::main]
@@ -186,10 +193,11 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Add db url"));
     let pool = Pool::builder().build(manager).expect("pool build");
 
-    match run_pending_migrations(&pool.get().unwrap()) {
-        Ok(_) => print!("migration success\n"),
-        Err(e)=> print!("migration error: {}\n",&e),
-    };
+    //match run_pending_migrations(&pool.get().unwrap()) {
+    //    Ok(_) => print!("migration success\n"),
+    //    Err(e)=> print!("migration error: {}\n",&e),
+    //};
+    //fuck
 
     let balance_keeper = std::env::var("BALANCE_KEEPER_ADDRESS")
         .expect("failed to get address");
@@ -207,17 +215,20 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "0xdb82536d6a90c757b9cecfe267e7dd17bbb96cb1acd169e21771d6b816ab0bc4";
     let farm_method_topic: H256 = farm_method_topic.parse().unwrap();
 
-    let http = web3::transports::Http::new("https://rpcapi.fantom.network")
+    let http = web3::transports::Http::new("https://rpc.ftm.tools")
         .expect("err creating http");
     let web3 = web3::Web3::new(http);
+    println!("starting");
 
     loop {
         let num = PollerState::get(1, &pool.get().unwrap()).await;
         let prev_block = BlockNumber::Number(num.into());
         let current_block_num = web3.eth().block_number().await.unwrap();
+        let current_block_num = (current_block_num-U64::from(10))
+            .min(U64::from(num + 1000));
         let current_block = BlockNumber::Number(current_block_num);
 
-        plain_tracker(
+        let mut r = plain_tracker(
             &web3, 
             prev_block, 
             current_block, 
@@ -225,18 +236,20 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
             balance_keeper, 
             farmer, 
             pool.clone()).await;
-        farms_tracker(
+        let mut ap = farms_tracker(
             &web3, 
             prev_block, 
             current_block, 
             farm_method_topic, 
             farmer, 
             pool.clone()).await;
+        r.append(&mut ap);
+        Data::insert(r,&pool.get().unwrap()).await;
         PollerState::save(1, 
                 (current_block_num.as_u64()+1) as i64, 
                 &pool.get().unwrap())
             .await;
 
-        delay_for(Duration::from_secs((60) as u64)).await;
+        delay_for(Duration::from_secs((1) as u64)).await;
     }
 }
