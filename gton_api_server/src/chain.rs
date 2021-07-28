@@ -6,6 +6,7 @@ pub enum ChainID {
     Ethereum = 1,
     Binance = 56,
     Fantom = 250,
+    Polygon = 137,
 }
 
 impl ChainID {
@@ -14,6 +15,7 @@ impl ChainID {
             Self::Ethereum => String::from("https://mainnet.infura.io/v3/ec6afadb1810471dbb600f24b86391d2"),
             Self::Binance => String::from("https://bsc-dataseed1.binance.org"),
             Self::Fantom => String::from("https://rpcapi.fantom.network"),
+            Self::Polygon => String::from("https://rpc-mainnet.maticvigil.com"),
             _ => unreachable!(),
         }
     }
