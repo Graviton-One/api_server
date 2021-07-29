@@ -1,10 +1,5 @@
-/ftm_poller/target
 /gton_api_server/target
 /target
 /gton_api_server/.env
-/keeper_extractor/target
-/keeper_extractor/.env
-/coingeco_poller/target
-/coingeco_poller/.env
-/volume_poller/.env
-/volume_poller/target
+/async-scheduler/target
+/async-scheduler/.env

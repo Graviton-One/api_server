@@ -1,17 +1,16 @@
-#[macro_use]
-extern crate diesel;
 use diesel::r2d2;
 use tokio::time::{
     delay_for, 
       Duration
 };
+use std::sync::Arc;
 use bigdecimal::BigDecimal;
 use diesel_migrations::run_pending_migrations;
 use tokio_diesel::*;
 use std::str::FromStr;
 
 use web3::transports::Http;
-use web3::types::*;
+use web3::{Web3, types::*};
 use web3::ethabi::{
     Topic,
     TopicFilter,
@@ -20,10 +19,9 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
-pub mod schema;
 use tokio::prelude::*;
 
-use schema::pollers_data;
+use crate::schema::pollers_data;
 use serde;
 use serde::{
     Serialize,
@@ -39,9 +37,9 @@ pub struct Data {
 impl Data {
     pub async fn insert(
         data: Vec<Self>,
-        conn: &PgConnection,
+        conn: Arc<Pool<ConnectionManager<PgConnection>>>,
     ) {
-        conn.build_transaction()
+        conn.get().unwrap().build_transaction()
             .read_write()
             .run::<_, diesel::result::Error, _>(|| {
                 for el in data {
@@ -49,7 +47,7 @@ impl Data {
                         .bind::<diesel::sql_types::Varchar,_>(el.to.clone())
                         .bind::<diesel::sql_types::Varchar,_>(el.from.clone())
                         .bind::<diesel::sql_types::Numeric,_>(el.amount.clone())
-                        .execute(conn)
+                        .execute(&conn.get().unwrap())
                         .unwrap();
                 }
                 Ok(())
@@ -69,23 +67,25 @@ impl PollerState {
     pub async fn save(
         id: i32,
         num: i64,
-        conn: &PgConnection, 
+        conn: Arc<Pool<ConnectionManager<PgConnection>>>, 
     ) {
         diesel::update(pollers_data::table)
             .filter(pollers_data::poller_id.eq(id))
             .set(pollers_data::block_id.eq(num))
-            .execute(conn)
+            .execute_async(&conn)
+            .await
             .unwrap();
     }
 
     pub async fn get(
         id: i32,
-        conn: &PgConnection, 
+        conn: Arc<Pool<ConnectionManager<PgConnection>>>, 
     ) -> i64 {
         pollers_data::table
             .filter(pollers_data::poller_id.eq(id))
             .select(pollers_data::block_id)
-            .get_result::<i64>(conn)
+            .get_result_async::<i64>(&conn)
+            .await
             .unwrap()
     }
 }
@@ -96,7 +96,7 @@ pub async fn farms_tracker(
     current_block: BlockNumber,
     farm_method_topic: H256,
     farm_address: Address,
-    pool: r2d2::Pool<r2d2::ConnectionManager<PgConnection>>,
+    pool: Arc<Pool<ConnectionManager<PgConnection>>>,
 ) -> Vec<Data> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(farm_method_topic);
@@ -141,7 +141,7 @@ pub async fn plain_tracker(
     method_topic: H256,
     balance_keeper: Address,
     farm_address: Address,
-    pool: r2d2::Pool<r2d2::ConnectionManager<PgConnection>>,
+    pool: Arc<Pool<ConnectionManager<PgConnection>>>,
 ) -> Vec<Data> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(method_topic);
@@ -185,71 +185,79 @@ pub async fn plain_tracker(
         r
 }
 
-#[tokio::main]
-pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv::dotenv().ok();
-    let manager =
-        ConnectionManager::<PgConnection>::new(std::env::var("DATABASE_URL")
-        .expect("Add db url"));
-    let pool = Pool::builder().build(manager).expect("pool build");
+pub struct KeeperExtractor {
+    pool: Arc<Pool<ConnectionManager<PgConnection>>>,
+    web3: Web3<Http>,
+    balance_keeper: Address,
+    farmer: Address,
+    add_method_topic: H256,
+    farm_method_topic: H256,
+}
 
-    //match run_pending_migrations(&pool.get().unwrap()) {
-    //    Ok(_) => print!("migration success\n"),
-    //    Err(e)=> print!("migration error: {}\n",&e),
-    //};
-    //fuck
+impl KeeperExtractor {
+    pub fn new(
+        pool: Arc<Pool<ConnectionManager<PgConnection>>>,
+    ) -> Self {
+        let http = web3::transports::Http::new("https://rpc.ftm.tools")
+            .expect("err creating http");
+        let web3 = web3::Web3::new(http);
+        let balance_keeper = std::env::var("BALANCE_KEEPER_ADDRESS")
+            .expect("failed to get address");
+        let balance_keeper: Address = balance_keeper.parse().unwrap();
 
-    let balance_keeper = std::env::var("BALANCE_KEEPER_ADDRESS")
-        .expect("failed to get address");
-    let balance_keeper: Address = balance_keeper.parse().unwrap();
+        let farmer = std::env::var("FARM_AGGREGATOR_ADDRESS")
+            .expect("failed to get address");
+        let farmer: Address = farmer.parse().unwrap();
 
-    let farmer = std::env::var("FARMER_ADDRESS")
-        .expect("failed to get address");
-    let farmer: Address = farmer.parse().unwrap();
+        let add_method_topic = 
+            "0xc264f49177bdbe55a01fae0e77c3fdc75d515d242b32bc4d56c565f5b47865ba";
+        let add_method_topic: H256 = add_method_topic.parse().unwrap();
 
-    let add_method_topic = 
-        "0xc264f49177bdbe55a01fae0e77c3fdc75d515d242b32bc4d56c565f5b47865ba";
-    let add_method_topic: H256 = add_method_topic.parse().unwrap();
+        let farm_method_topic = 
+            "0xdb82536d6a90c757b9cecfe267e7dd17bbb96cb1acd169e21771d6b816ab0bc4";
+        let farm_method_topic: H256 = farm_method_topic.parse().unwrap();
+        KeeperExtractor {
+            pool,
+            web3,
+            balance_keeper,
+            farmer,
+            add_method_topic,
+            farm_method_topic,
+        }
+    }
 
-    let farm_method_topic = 
-        "0xdb82536d6a90c757b9cecfe267e7dd17bbb96cb1acd169e21771d6b816ab0bc4";
-    let farm_method_topic: H256 = farm_method_topic.parse().unwrap();
+    pub async fn run(&self) {
+        loop {
+            let num = PollerState::get(1, self.pool.clone()).await;
+            let prev_block = BlockNumber::Number(num.into());
+            let current_block_num = self.web3.eth().block_number().await.unwrap();
+            let current_block_num = (current_block_num-U64::from(10))
+                .min(U64::from(num + 1000));
+            let current_block = BlockNumber::Number(current_block_num);
 
-    let http = web3::transports::Http::new("https://rpc.ftm.tools")
-        .expect("err creating http");
-    let web3 = web3::Web3::new(http);
-    println!("starting");
+            let mut r = plain_tracker(
+                &self.web3, 
+                prev_block, 
+                current_block, 
+                self.add_method_topic, 
+                self.balance_keeper, 
+                self.farmer, 
+                self.pool.clone()).await;
+            let mut ap = farms_tracker(
+                &self.web3, 
+                prev_block, 
+                current_block, 
+                self.farm_method_topic, 
+                self.farmer, 
+                self.pool.clone()).await;
+            r.append(&mut ap);
+            Data::insert(r,self.pool.clone()).await;
+            PollerState::save(1, 
+                    (current_block_num.as_u64()+1) as i64, 
+                    self.pool.clone())
+                .await;
 
-    loop {
-        let num = PollerState::get(1, &pool.get().unwrap()).await;
-        let prev_block = BlockNumber::Number(num.into());
-        let current_block_num = web3.eth().block_number().await.unwrap();
-        let current_block_num = (current_block_num-U64::from(10))
-            .min(U64::from(num + 1000));
-        let current_block = BlockNumber::Number(current_block_num);
-
-        let mut r = plain_tracker(
-            &web3, 
-            prev_block, 
-            current_block, 
-            add_method_topic, 
-            balance_keeper, 
-            farmer, 
-            pool.clone()).await;
-        let mut ap = farms_tracker(
-            &web3, 
-            prev_block, 
-            current_block, 
-            farm_method_topic, 
-            farmer, 
-            pool.clone()).await;
-        r.append(&mut ap);
-        Data::insert(r,&pool.get().unwrap()).await;
-        PollerState::save(1, 
-                (current_block_num.as_u64()+1) as i64, 
-                &pool.get().unwrap())
-            .await;
-
-        delay_for(Duration::from_secs((1) as u64)).await;
+            delay_for(Duration::from_secs((1) as u64)).await;
+        }
     }
 }
