@@ -174,26 +174,26 @@ tx_hash text not null,
 log_index bigInt not null,
 unique (tx_hash, log_index)
 );
-INSERT INTO forum_active_users (id, amount, stamp) VALUES (1, 99, '2021-07-22 00:00:00.000000');
-INSERT INTO forum_active_users (id, amount, stamp) VALUES (2, 100, '2021-07-23 00:00:00.000000');
-INSERT INTO forum_active_users (id, amount, stamp) VALUES (3, 100, '2021-07-24 00:00:00.000000');
-INSERT INTO forum_active_users (id, amount, stamp) VALUES (4, 100, '2021-07-25 00:00:00.000000');
-INSERT INTO forum_active_users (id, amount, stamp) VALUES (5, 100, '2021-07-26 00:00:00.000000');
+INSERT INTO forum_active_users (amount, stamp) VALUES (99, '2021-07-22 00:00:00.000000');
+INSERT INTO forum_active_users (amount, stamp) VALUES (100, '2021-07-23 00:00:00.000000');
+INSERT INTO forum_active_users (amount, stamp) VALUES (100, '2021-07-24 00:00:00.000000');
+INSERT INTO forum_active_users (amount, stamp) VALUES (100, '2021-07-25 00:00:00.000000');
+INSERT INTO forum_active_users (amount, stamp) VALUES (100, '2021-07-26 00:00:00.000000');
 
-INSERT INTO forum_total_posts (id, amount, stamp) VALUES (1, 116, '2021-07-22 00:00:00.000000');
-INSERT INTO forum_total_posts (id, amount, stamp) VALUES (2, 125, '2021-07-23 00:00:00.000000');
-INSERT INTO forum_total_posts (id, amount, stamp) VALUES (3, 135, '2021-07-24 00:00:00.000000');
-INSERT INTO forum_total_posts (id, amount, stamp) VALUES (4, 135, '2021-07-25 00:00:00.000000');
-INSERT INTO forum_total_posts (id, amount, stamp) VALUES (5, 136, '2021-07-26 00:00:00.000000');
+INSERT INTO forum_total_posts (amount, stamp) VALUES (116, '2021-07-22 00:00:00.000000');
+INSERT INTO forum_total_posts (amount, stamp) VALUES (125, '2021-07-23 00:00:00.000000');
+INSERT INTO forum_total_posts (amount, stamp) VALUES (135, '2021-07-24 00:00:00.000000');
+INSERT INTO forum_total_posts (amount, stamp) VALUES (135, '2021-07-25 00:00:00.000000');
+INSERT INTO forum_total_posts (amount, stamp) VALUES (136, '2021-07-26 00:00:00.000000');
 
-INSERT INTO forum_total_topics (id, amount, stamp) VALUES (1, 18, '2021-07-22 00:00:00.000000');
-INSERT INTO forum_total_topics (id, amount, stamp) VALUES (2, 19, '2021-07-23 00:00:00.000000');
-INSERT INTO forum_total_topics (id, amount, stamp) VALUES (3, 20, '2021-07-24 00:00:00.000000');
-INSERT INTO forum_total_topics (id, amount, stamp) VALUES (4, 20, '2021-07-25 00:00:00.000000');
-INSERT INTO forum_total_topics (id, amount, stamp) VALUES (5, 20, '2021-07-26 00:00:00.000000');
+INSERT INTO forum_total_topics (amount, stamp) VALUES (18, '2021-07-22 00:00:00.000000');
+INSERT INTO forum_total_topics (amount, stamp) VALUES (19, '2021-07-23 00:00:00.000000');
+INSERT INTO forum_total_topics (amount, stamp) VALUES (20, '2021-07-24 00:00:00.000000');
+INSERT INTO forum_total_topics (amount, stamp) VALUES (20, '2021-07-25 00:00:00.000000');
+INSERT INTO forum_total_topics (amount, stamp) VALUES (20, '2021-07-26 00:00:00.000000');
 
-INSERT INTO forum_total_users (id, amount, stamp) VALUES (1, 93, '2021-07-22 00:00:00.000000');
-INSERT INTO forum_total_users (id, amount, stamp) VALUES (2, 94, '2021-07-23 00:00:00.000000');
-INSERT INTO forum_total_users (id, amount, stamp) VALUES (3, 96, '2021-07-24 00:00:00.000000');
-INSERT INTO forum_total_users (id, amount, stamp) VALUES (4, 97, '2021-07-25 00:00:00.000000');
-INSERT INTO forum_total_users (id, amount, stamp) VALUES (5, 100, '2021-07-26 00:00:00.000000');
+INSERT INTO forum_total_users (amount, stamp) VALUES (93, '2021-07-22 00:00:00.000000');
+INSERT INTO forum_total_users (amount, stamp) VALUES (94, '2021-07-23 00:00:00.000000');
+INSERT INTO forum_total_users (amount, stamp) VALUES (96, '2021-07-24 00:00:00.000000');
+INSERT INTO forum_total_users (amount, stamp) VALUES (97, '2021-07-25 00:00:00.000000');
+INSERT INTO forum_total_users (amount, stamp) VALUES (100, '2021-07-26 00:00:00.000000');
