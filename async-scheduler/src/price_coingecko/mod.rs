@@ -11,15 +11,15 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
 };
 
-pub struct CoingecoPrice {
+pub struct CoingeckoPrice {
     pub pool: Arc<Pool<ConnectionManager<PgConnection>>>,
 }
 
-impl CoingecoPrice {
+impl CoingeckoPrice {
     pub fn new(
         pool: Arc<Pool<ConnectionManager<PgConnection>>>,
     ) -> Self {
-        CoingecoPrice {
+        CoingeckoPrice {
             pool,
         }
     }

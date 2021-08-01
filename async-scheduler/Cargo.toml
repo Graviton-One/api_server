@@ -1,5 +1,5 @@
 [package]
-name = "async_sceduler"
+name = "async_scheduler"
 version = "0.1.0"
 authors = ["BadConfig array.clean@gmail.com github/badconfig"]
 edition = "2018"
@@ -20,3 +20,6 @@ diesel_migrations = "1.4.0"
 tokio-cron-scheduler = "0.2.1"
 serde_json = { version = "1.0.64"}
 bigdecimal = "0.1.0"
+
+anyhow = "1.0"
+num-bigint = "0.4.0"
