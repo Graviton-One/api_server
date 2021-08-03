@@ -1,18 +1,18 @@
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Double, Timestamp, Text};
+use diesel::sql_types::{BigInt, Double, Text, Timestamp};
 
 use web3::transports::Http;
 
 use crate::DbPool;
-pub mod models;
 pub mod constants;
+pub mod models;
 pub mod pollers;
 pub mod reports;
 use constants::C;
+use models::*;
 use pollers::poll_events_anyv4_transfer;
 use pollers::*;
 use reports::*;
-use models::*;
 
 #[derive(QueryableByName, PartialEq, Debug)]
 struct Pair {
@@ -30,15 +30,13 @@ pub struct EventsExtractor {
 }
 
 impl EventsExtractor {
-    pub fn new(
-        pool: DbPool,
-    ) -> Self {
-        let ftm_web3 = web3::Web3::new(Http::new("https://rpc.ftm.tools")
-            .expect("err creating http"));
-        let ftmscan_api_key: String = std::env::var("FTMSCAN_API_KEY")
-            .expect("ftmscan api key get");
-        let ethscan_api_key: String = std::env::var("ETHSCAN_API_KEY")
-            .expect("ethscan api key get");
+    pub fn new(pool: DbPool) -> Self {
+        let ftm_web3 =
+            web3::Web3::new(Http::new("https://rpc.ftm.tools").expect("err creating http"));
+        let ftmscan_api_key: String =
+            std::env::var("FTMSCAN_API_KEY").expect("ftmscan api key get");
+        let ethscan_api_key: String =
+            std::env::var("ETHSCAN_API_KEY").expect("ethscan api key get");
 
         EventsExtractor {
             pool,
@@ -49,7 +47,6 @@ impl EventsExtractor {
     }
 
     pub async fn run(&self) {
-
         &self.poll_ftm().await;
 
         // get ethereum from etherscan for now
@@ -57,9 +54,9 @@ impl EventsExtractor {
             &self.pool,
             "events_anyv4_transfer",
             &self.ftm_web3,
-            C.eth_gton
-        ).await;
-
+            C.eth_gton,
+        )
+        .await;
     }
 
     async fn poll_ftm(&self) {
@@ -67,52 +64,59 @@ impl EventsExtractor {
             &self.pool,
             "events_erc20_approval_ftm",
             &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+            C.ftm_gton,
+        )
+        .await;
 
         poll_events_erc20_transfer(
             &self.pool,
             "events_erc20_transfer_ftm",
             &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+            C.ftm_gton,
+        )
+        .await;
 
         poll_events_anyv4_swapin(
             &self.pool,
             "events_anyv4_swapin_ftm",
             &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+            C.ftm_gton,
+        )
+        .await;
 
         poll_events_anyv4_swapout(
             &self.pool,
             "events_anyv4_swapout_ftm",
             &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+            C.ftm_gton,
+        )
+        .await;
 
         poll_events_univ2_pair_created(
             &self.pool,
             "events_univ2_pair_created_spirit",
             &self.ftm_web3,
             C.ftm_gton,
-            C.ftm_spirit_factory
-        ).await;
+            C.ftm_spirit_factory,
+        )
+        .await;
 
         let pairs = diesel::sql_query(
             "SELECT id, address \
-             FROM events_univ2_pair_created_spirit;")
-            .get_results::<Pair>(&self.pool.get().unwrap()).unwrap();
+             FROM events_univ2_pair_created_spirit;",
+        )
+        .get_results::<Pair>(&self.pool.get().unwrap())
+        .unwrap();
 
         for pair in pairs {
-
             poll_events_univ2_transfer(
                 &self.pool,
                 "events_univ2_transfer_spirit",
                 &self.ftm_web3,
                 pair.id,
                 &pair.address,
-            ).await;
+            )
+            .await;
 
             poll_events_univ2_swap(
                 &self.pool,
@@ -120,21 +124,24 @@ impl EventsExtractor {
                 &self.ftm_web3,
                 pair.id,
                 &pair.address,
-            ).await;
+            )
+            .await;
             poll_events_univ2_mint(
                 &self.pool,
                 "events_univ2_mint_spirit",
                 &self.ftm_web3,
                 pair.id,
                 &pair.address,
-            ).await;
+            )
+            .await;
             poll_events_univ2_burn(
                 &self.pool,
                 "events_univ2_burn_spirit",
                 &self.ftm_web3,
                 pair.id,
                 &pair.address,
-            ).await;
+            )
+            .await;
         }
 
         report_buy(
@@ -143,7 +150,8 @@ impl EventsExtractor {
             "events_univ2_swap_spirit",
             "univ2_buy_spirit",
             &self.ftm_web3,
-        ).await;
+        )
+        .await;
 
         report_sell(
             &self.pool,
@@ -151,6 +159,7 @@ impl EventsExtractor {
             "events_univ2_swap_spirit",
             "univ2_sell_spirit",
             &self.ftm_web3,
-        ).await;
+        )
+        .await;
     }
 }

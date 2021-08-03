@@ -127,7 +127,7 @@ pub struct UniV2Sell {
     pub amount_token_out: BigDecimal,
     pub stamp: NaiveDateTime,
     pub tx_hash: String,
-    pub log_index: i64
+    pub log_index: i64,
 }
 
 #[derive(Debug)]
@@ -140,7 +140,7 @@ pub struct UniV2Buy {
     pub amount_gton_out: BigDecimal,
     pub stamp: NaiveDateTime,
     pub tx_hash: String,
-    pub log_index: i64
+    pub log_index: i64,
 }
 
 #[derive(Debug)]
@@ -154,7 +154,7 @@ pub struct UniV2LPAdd {
     pub amount_lp_out: BigDecimal,
     pub stamp: NaiveDateTime,
     pub tx_hash: String,
-    pub log_index: i64
+    pub log_index: i64,
 }
 
 #[derive(Debug)]
@@ -168,5 +168,5 @@ pub struct UniV2LPRemove {
     pub amount_lp_in: BigDecimal,
     pub stamp: NaiveDateTime,
     pub tx_hash: String,
-    pub log_index: i64
+    pub log_index: i64,
 }
