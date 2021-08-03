@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, Error};
 
 use hex::ToHex;
 use std::convert::TryFrom;
@@ -31,23 +31,23 @@ struct LastBlock {
     block_number: i64,
 }
 
-async fn fetch_stamp(web3: &web3::Web3<Http>, block_number: &Option<U64>) -> NaiveDateTime {
+async fn fetch_stamp(web3: &web3::Web3<Http>, block_number: U64) -> Result<NaiveDateTime> {
     let block: Block<H256> = web3
         .eth()
-        .block(BlockNumber::Number(block_number.unwrap()).into())
+        .block(BlockNumber::Number(block_number).into())
         .await
-        .unwrap()
-        .unwrap();
+        .context("fetch block")?
+        .context("block option")?;
     let stamp_str = block.timestamp.to_string();
-    let stamp_big = BigDecimal::from_str(&stamp_str).unwrap();
-    let stamp_i64 = stamp_big.to_i64().unwrap();
-    NaiveDateTime::from_timestamp(stamp_i64, 0)
+    let stamp_big = BigDecimal::from_str(&stamp_str).context("stamp to bigdecimal")?;
+    let stamp_i64 = stamp_big.to_i64().context("stamp to i64")?;
+    Ok(NaiveDateTime::from_timestamp(stamp_i64, 0))
 }
 
-fn parse_block_number(block_number: &Option<U64>) -> i64 {
-    let block_number_str = block_number.unwrap().to_string();
-    let block_number_big = BigDecimal::from_str(&block_number_str).unwrap();
-    block_number_big.to_i64().unwrap()
+fn parse_block_number(block_number: U64) -> Result<i64> {
+    let block_number_str = block_number.to_string();
+    let block_number_big = BigDecimal::from_str(&block_number_str).context("block number to bigdecimal")?;
+    Ok(block_number_big.to_i64().context("block_number to i64")?)
 }
 
 fn hex_to_string<T: ToHex>(h: T) -> String {
@@ -59,14 +59,14 @@ pub async fn poll_events_erc20_approval(
     table_name: &str,
     web3: &web3::Web3<Http>,
     token: &str,
-) {
+) -> Result<()> {
     println!("polling events erc20 approval");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} ORDER BY block_number DESC;",
         table_name
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from approval table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -82,24 +82,24 @@ pub async fn poll_events_erc20_approval(
         .address(vec![token.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs approval")?;
 
     for (i, e) in result.into_iter().enumerate() {
         let owner: String = hex_to_string(Address::from(e.topics[1]));
         let spender: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal =
-            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).context("amount to bigdecimal")?;
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventERC20Approval {
             tx_origin,
@@ -132,20 +132,22 @@ pub async fn poll_events_erc20_approval(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 pub async fn poll_events_erc20_transfer(
@@ -153,14 +155,14 @@ pub async fn poll_events_erc20_transfer(
     table_name: &str,
     web3: &web3::Web3<Http>,
     token: &str,
-) {
+) -> Result<()> {
     println!("polling events erc20 transfer");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} ORDER BY block_number DESC;",
         table_name
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from erc20 transfer table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -176,24 +178,24 @@ pub async fn poll_events_erc20_transfer(
         .address(vec![token.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs erc20 transfer")?;
 
     for (i, e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal =
-            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).context("amount to bigdecimal")?;
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventERC20Transfer {
             tx_origin,
@@ -226,20 +228,22 @@ pub async fn poll_events_erc20_transfer(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 pub async fn poll_events_anyv4_transfer(
@@ -247,23 +251,26 @@ pub async fn poll_events_anyv4_transfer(
     table_name: &str,
     web3: &web3::Web3<Http>,
     token: &str,
-) {
+) -> Result<()> {
     println!("polling events anyv4 transfer");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} ORDER BY block_number DESC;",
         table_name
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
 
+    let vault_addr: Address = C.eth_anyv4_vault.parse().unwrap();
+    let vault_h256 = H256::from(vault_addr);
+
     let mut topics = TopicFilter::default();
     topics.topic0 = Topic::This(C.topic0_erc20_transfer.parse().unwrap());
-    topics.topic2 = Topic::This(C.eth_anyv4_vault.parse().unwrap());
+    topics.topic2 = Topic::This(vault_h256);
 
     let filter = FilterBuilder::default()
         .from_block(last_block)
@@ -271,24 +278,24 @@ pub async fn poll_events_anyv4_transfer(
         .address(vec![token.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs anyv4 transfer")?;
 
     for (i, e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal =
-            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).context("amount to bigdecimal")?;
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventERC20Transfer {
             tx_origin,
@@ -321,20 +328,22 @@ pub async fn poll_events_anyv4_transfer(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 pub async fn poll_events_anyv4_swapin(
@@ -342,14 +351,14 @@ pub async fn poll_events_anyv4_swapin(
     table_name: &str,
     web3: &web3::Web3<Http>,
     token: &str,
-) {
+) -> Result<()> {
     println!("polling events anyv4 swapin");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} ORDER BY block_number DESC;",
         table_name
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -365,25 +374,25 @@ pub async fn poll_events_anyv4_swapin(
         .address(vec![token.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs anyv4 swapin")?;
 
     let mut events: Vec<EventAnyV4Swapin> = vec![];
     for (i, e) in result.into_iter().enumerate() {
         let transfer_tx_hash: String = hex_to_string(e.topics[1]);
         let account: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal =
-            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).context("amount to bigdecimal")?;
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventAnyV4Swapin {
             tx_origin,
@@ -416,20 +425,22 @@ pub async fn poll_events_anyv4_swapin(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 pub async fn poll_events_anyv4_swapout(
@@ -437,14 +448,14 @@ pub async fn poll_events_anyv4_swapout(
     table_name: &str,
     web3: &web3::Web3<Http>,
     token: &str,
-) {
+) -> Result<()> {
     println!("polling events anyv4 swapout");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} ORDER BY block_number DESC;",
         table_name
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -460,25 +471,25 @@ pub async fn poll_events_anyv4_swapout(
         .address(vec![token.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs anyv4 swapout")?;
 
     let mut events: Vec<EventAnyV4Swapout> = vec![];
     for (i, e) in result.into_iter().enumerate() {
         let account: String = hex_to_string(Address::from(e.topics[1]));
         let bindaddr: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal =
-            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).context("amount to bigdecimal")?;
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventAnyV4Swapout {
             tx_origin,
@@ -511,20 +522,22 @@ pub async fn poll_events_anyv4_swapout(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 async fn get_token_name(web3: &Web3<Http>, token: Address) -> String {
@@ -544,14 +557,14 @@ pub async fn poll_events_univ2_pair_created(
     web3: &web3::Web3<Http>,
     token: &str,
     factory: &str,
-) {
+) -> Result<()> {
     println!("polling events univ2 pair created");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} ORDER BY block_number DESC;",
         table_name
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -572,7 +585,7 @@ pub async fn poll_events_univ2_pair_created(
         .address(vec![factory.parse().unwrap()])
         .topic_filter(topics1)
         .build();
-    let result1: Vec<web3::types::Log> = web3.eth().logs(filter1).await.unwrap();
+    let result1: Vec<web3::types::Log> = web3.eth().logs(filter1).await.context("get logs univ2 pair created")?;
 
     // check pairs where gton is token1
     let mut topics2 = TopicFilter::default();
@@ -585,7 +598,7 @@ pub async fn poll_events_univ2_pair_created(
         .address(vec![factory.parse().unwrap()])
         .topic_filter(topics2)
         .build();
-    let result2: Vec<web3::types::Log> = web3.eth().logs(filter2).await.unwrap();
+    let result2: Vec<web3::types::Log> = web3.eth().logs(filter2).await.context("get logs univ2 pair created")?;
 
     let result = [result1, result2].concat();
 
@@ -600,18 +613,18 @@ pub async fn poll_events_univ2_pair_created(
         let title1 = get_token_name(&web3, Address::from(e.topics[2])).await;
         let title = title0 + "-" + &title1;
         let index_str = U256::from(&e.data.0[32..64]).to_string();
-        let index = BigDecimal::from_str(&index_str).unwrap();
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+        let index = BigDecimal::from_str(&index_str).context("index to bigdecimal")?;
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventUniV2PairCreated {
             tx_origin,
@@ -653,20 +666,22 @@ pub async fn poll_events_univ2_pair_created(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 pub async fn poll_events_univ2_transfer(
@@ -675,14 +690,14 @@ pub async fn poll_events_univ2_transfer(
     web3: &web3::Web3<Http>,
     pair_id: i64,
     pair_address: &str,
-) {
+) -> Result<()> {
     println!("polling events lp transfer");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} ORDER BY block_number DESC;",
         table_name
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -698,24 +713,24 @@ pub async fn poll_events_univ2_transfer(
         .address(vec![pair_address.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs univ2 transfer")?;
 
     for (i, e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal =
-            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+            BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).context("amount to bigdecimal")?;
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventERC20Transfer {
             tx_origin,
@@ -750,20 +765,22 @@ pub async fn poll_events_univ2_transfer(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 pub async fn poll_events_univ2_swap(
     pool: &DbPool,
@@ -771,7 +788,7 @@ pub async fn poll_events_univ2_swap(
     web3: &web3::Web3<Http>,
     pair_id: i64,
     pair_address: &str,
-) {
+) -> Result<()> {
     println!("polling events univ2 swap");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
@@ -780,7 +797,7 @@ pub async fn poll_events_univ2_swap(
                  ORDER BY block_number DESC;",
         table_name, pair_id
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -796,32 +813,32 @@ pub async fn poll_events_univ2_swap(
         .address(vec![pair_address.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs univ2 swap")?;
 
     for (i, e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
 
         let amount0_in_str = U256::from(&e.data.0[..32]).to_string();
-        let amount0_in = BigDecimal::from_str(&amount0_in_str).unwrap();
+        let amount0_in = BigDecimal::from_str(&amount0_in_str).context("amount to bigdecimal")?;
         let amount1_in_str = U256::from(&e.data.0[32..64]).to_string();
-        let amount1_in = BigDecimal::from_str(&amount1_in_str).unwrap();
+        let amount1_in = BigDecimal::from_str(&amount1_in_str).context("amount to bigdecimal")?;
         let amount0_out_str = U256::from(&e.data.0[64..96]).to_string();
-        let amount0_out = BigDecimal::from_str(&amount0_out_str).unwrap();
+        let amount0_out = BigDecimal::from_str(&amount0_out_str).context("amount to bigdecimal")?;
         let amount1_out_str = U256::from(&e.data.0[96..128]).to_string();
-        let amount1_out = BigDecimal::from_str(&amount1_out_str).unwrap();
+        let amount1_out = BigDecimal::from_str(&amount1_out_str).context("amount to bigdecimal")?;
 
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventUniV2Swap {
             tx_origin,
@@ -865,20 +882,22 @@ pub async fn poll_events_univ2_swap(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 pub async fn poll_events_univ2_mint(
@@ -887,7 +906,7 @@ pub async fn poll_events_univ2_mint(
     web3: &web3::Web3<Http>,
     pair_id: i64,
     pair_address: &str,
-) {
+) -> Result<()> {
     println!("polling events univ2 mint");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
@@ -896,7 +915,7 @@ pub async fn poll_events_univ2_mint(
                  ORDER BY block_number DESC;",
         table_name, pair_id
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -912,27 +931,27 @@ pub async fn poll_events_univ2_mint(
         .address(vec![pair_address.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs univ2 mint")?;
 
     for (i, e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
 
         let amount0_str = U256::from(&e.data.0[..32]).to_string();
-        let amount0 = BigDecimal::from_str(&amount0_str).unwrap();
+        let amount0 = BigDecimal::from_str(&amount0_str).context("amount to bigdecimal")?;
         let amount1_str = U256::from(&e.data.0[32..64]).to_string();
-        let amount1 = BigDecimal::from_str(&amount1_str).unwrap();
+        let amount1 = BigDecimal::from_str(&amount1_str).context("amount to bigdecimal")?;
 
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventUniV2Mint {
             tx_origin,
@@ -967,20 +986,22 @@ pub async fn poll_events_univ2_mint(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }
 
 pub async fn poll_events_univ2_burn(
@@ -989,7 +1010,7 @@ pub async fn poll_events_univ2_burn(
     web3: &web3::Web3<Http>,
     pair_id: i64,
     pair_address: &str,
-) {
+) -> Result<()> {
     println!("polling events univ2 burn");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
@@ -998,7 +1019,7 @@ pub async fn poll_events_univ2_burn(
                  ORDER BY block_number DESC;",
         table_name, pair_id
     ))
-    .get_result::<LastBlock>(&pool.get().unwrap())
+    .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
         Err(_) => BlockNumber::Earliest,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
@@ -1014,28 +1035,28 @@ pub async fn poll_events_univ2_burn(
         .address(vec![pair_address.parse().unwrap()])
         .topic_filter(topics)
         .build();
-    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.context("get logs univ2 burn")?;
 
     for (i, e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
 
         let amount0_str = U256::from(&e.data.0[..32]).to_string();
-        let amount0 = BigDecimal::from_str(&amount0_str).unwrap();
+        let amount0 = BigDecimal::from_str(&amount0_str).context("amount to bigdecimal")?;
         let amount1_str = U256::from(&e.data.0[32..64]).to_string();
-        let amount1 = BigDecimal::from_str(&amount1_str).unwrap();
+        let amount1 = BigDecimal::from_str(&amount1_str).context("amount to bigdecimal")?;
 
-        let block_number = parse_block_number(&e.block_number);
-        let stamp = fetch_stamp(&web3, &e.block_number).await;
-        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+        let block_number = parse_block_number(e.block_number.context("block number option")?)?;
+        let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
+        let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
+        let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
         // get transaction origin
         let tx = &web3
             .eth()
             .transaction(TransactionId::Hash(tx_hash.parse().unwrap()))
             .await
-            .unwrap()
-            .unwrap();
+            .context("get transaction from rpc")?
+            .context("transaction option")?;
         let tx_origin = hex_to_string(tx.from);
         let event = EventUniV2Burn {
             tx_origin,
@@ -1073,18 +1094,20 @@ pub async fn poll_events_univ2_burn(
         .bind::<BigInt, _>(&event.block_number)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
         if i == 2 {
-            return;
+            return Ok(());
         }
 
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Err(e) => Error::new(e)
+                .context(format!("write to db: {:#?}", &event)),
         };
     }
+    Ok(())
 }

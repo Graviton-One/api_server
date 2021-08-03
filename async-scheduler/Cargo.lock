@@ -48,6 +48,7 @@ dependencies = [
  "diesel_migrations",
  "dotenv",
  "hex",
+ "jsonrpc-core 17.1.0",
  "num-bigint 0.4.0",
  "reqwest",
  "serde",
@@ -771,6 +772,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a47c4c3ac843f9a4238943f97620619033dadef4b378cd1e8addd170de396b3"
 dependencies = [
  "futures",
+ "log",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
+name = "jsonrpc-core"
+version = "17.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4467ab6dfa369b69e52bd0692e480c4d117410538526a57a304a0f2250fd95e"
+dependencies = [
+ "futures",
+ "futures-executor",
+ "futures-util",
  "log",
  "serde",
  "serde_derive",
@@ -2065,7 +2081,7 @@ dependencies = [
  "hyper",
  "hyper-proxy",
  "hyper-tls",
- "jsonrpc-core",
+ "jsonrpc-core 16.0.0",
  "log",
  "native-tls",
  "parking_lot",

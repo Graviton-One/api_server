@@ -1,3 +1,5 @@
+use anyhow::{Context, Result, Error};
+
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind::UniqueViolation;
 use diesel::result::Error::DatabaseError;
@@ -35,7 +37,7 @@ struct Swap {
     #[sql_type = "BigInt"]
     pub id: i64,
     #[sql_type = "BigInt"]
-    pub pair: i64,
+    pub pair_id: i64,
     #[sql_type = "Text"]
     pub tx_origin: String,
     #[sql_type = "Numeric"]
@@ -61,7 +63,7 @@ struct MintBurn {
     #[sql_type = "BigInt"]
     pub id: i64,
     #[sql_type = "BigInt"]
-    pub pair: i64,
+    pub pair_id: i64,
     #[sql_type = "Text"]
     pub tx_origin: String,
     #[sql_type = "Numeric"]
@@ -94,17 +96,17 @@ pub async fn report_buy(
     swap_table: &str,
     buy_table: &str,
     web3: &Web3<Http>,
-) {
+) -> Result<()> {
     // from last block in the report table, get swap table,
-    let swaps = diesel::sql_query(format!(
+    let swaps: Vec<Swap> = diesel::sql_query(format!(
         "SELECT id, pair_id, tx_origin, amount0_in, amount1_in, \
          amount0_out, amount1_out, stamp, block_number, tx_hash, log_index \
          FROM {} \
          ORDER BY block_number ASC;",
         swap_table
     ))
-    .get_results::<Swap>(&pool.get().unwrap())
-    .unwrap();
+        .get_results::<Swap>(&pool.get().context("execute sql query")?)
+        .context("get events from table")?;
 
     // get gtonToken0 from pair created table
     for swap in swaps {
@@ -114,9 +116,9 @@ pub async fn report_buy(
          WHERE id = $1;",
             pair_table
         ))
-        .bind::<BigInt, _>(swap.pair)
-        .get_result::<Pair>(&pool.get().unwrap())
-        .unwrap();
+        .bind::<BigInt, _>(swap.pair_id)
+        .get_result::<Pair>(&pool.get().context("execute sql query")?)
+        .context("get pair from table")?;
 
         if (pair.gtonToken0 && swap.amount1_in != 0.into() && swap.amount0_out != 0.into())
             || (!pair.gtonToken0 && swap.amount0_in != 0.into() && swap.amount1_out != 0.into())
@@ -124,7 +126,7 @@ pub async fn report_buy(
             let event = if pair.gtonToken0 {
                 UniV2Buy {
                     swap_id: swap.id.clone(),
-                    pair_id: swap.pair.clone(),
+                    pair_id: swap.pair_id.clone(),
                     pair_title: pair.title.clone(),
                     tx_origin: swap.tx_origin.clone(),
                     amount_token_in: swap.amount1_in.clone(),
@@ -136,7 +138,7 @@ pub async fn report_buy(
             } else {
                 UniV2Buy {
                     swap_id: swap.id.clone(),
-                    pair_id: swap.pair.clone(),
+                    pair_id: swap.pair_id.clone(),
                     pair_title: pair.title.clone(),
                     tx_origin: swap.tx_origin.clone(),
                     amount_token_in: swap.amount0_in.clone(),
@@ -169,15 +171,17 @@ pub async fn report_buy(
             .bind::<Timestamp, _>(&event.stamp)
             .bind::<Text, _>(&event.tx_hash)
             .bind::<BigInt, _>(&event.log_index)
-            .execute(&pool.get().unwrap());
+            .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => (),
-                Err(DatabaseError(UniqueViolation, _)) => (),
-                Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+                Ok(_) => Ok(()),
+                Err(DatabaseError(UniqueViolation, _)) => Ok(()),
+                Err(e) => Err(Error::new(e)
+                    .context(format!("write to db: {:#?}", &event))),
             };
         }
     }
+    Ok(())
 }
 
 pub async fn report_sell(
@@ -186,7 +190,7 @@ pub async fn report_sell(
     swap_table: &str,
     sell_table: &str,
     web3: &Web3<Http>,
-) {
+) -> Result<()> {
     // from last block in the report table, get swap table,
     let swaps = diesel::sql_query(format!(
         "SELECT id, pair_id, tx_origin, amount0_in, amount1_in, \
@@ -195,8 +199,8 @@ pub async fn report_sell(
          ORDER BY block_number ASC;",
         swap_table
     ))
-    .get_results::<Swap>(&pool.get().unwrap())
-    .unwrap();
+        .get_results::<Swap>(&pool.get().context("execute sql query")?)
+        .context("get events from table")?;
 
     // get gtonToken0 from pair created table
     for swap in swaps {
@@ -206,9 +210,9 @@ pub async fn report_sell(
          WHERE id=$1;",
             pair_table
         ))
-        .bind::<BigInt, _>(swap.pair)
-        .get_result::<Pair>(&pool.get().unwrap())
-        .unwrap();
+        .bind::<BigInt, _>(swap.pair_id)
+        .get_result::<Pair>(&pool.get().context("execute sql query")?)
+        .context("get pair from table")?;
 
         if (pair.gtonToken0 && swap.amount0_in != 0.into() && swap.amount1_out != 0.into())
             || (!pair.gtonToken0 && swap.amount1_in != 0.into() && swap.amount0_out != 0.into())
@@ -216,7 +220,7 @@ pub async fn report_sell(
             let event = if pair.gtonToken0 {
                 UniV2Sell {
                     swap_id: swap.id.clone(),
-                    pair_id: swap.pair.clone(),
+                    pair_id: swap.pair_id.clone(),
                     pair_title: pair.title.clone(),
                     tx_origin: swap.tx_origin.clone(),
                     amount_gton_in: swap.amount0_in.clone(),
@@ -228,7 +232,7 @@ pub async fn report_sell(
             } else {
                 UniV2Sell {
                     swap_id: swap.id.clone(),
-                    pair_id: swap.pair.clone(),
+                    pair_id: swap.pair_id.clone(),
                     pair_title: pair.title.clone(),
                     tx_origin: swap.tx_origin.clone(),
                     amount_gton_in: swap.amount1_in.clone(),
@@ -261,15 +265,17 @@ pub async fn report_sell(
             .bind::<Timestamp, _>(&event.stamp)
             .bind::<Text, _>(&event.tx_hash)
             .bind::<BigInt, _>(&event.log_index)
-            .execute(&pool.get().unwrap());
+            .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => (),
-                Err(DatabaseError(UniqueViolation, _)) => (),
-                Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+                Ok(_) => Ok(()),
+                Err(DatabaseError(UniqueViolation, _)) => Ok(()),
+                Err(e) => Err(Error::new(e)
+                .context(format!("write to db: {:#?}", &event))),
             };
         }
     }
+    Ok(())
 }
 
 pub async fn report_lp_add(
@@ -279,7 +285,7 @@ pub async fn report_lp_add(
     lp_transfer_table: &str,
     lp_add_table: &str,
     web3: &Web3<Http>,
-) {
+) -> Result<()> {
     // from last block in the report table, get mint table
     let mints = diesel::sql_query(format!(
         "SELECT id, pair_id, amount0, amount1, \
@@ -288,8 +294,8 @@ pub async fn report_lp_add(
          ORDER BY block_number ASC;",
         mint_table
     ))
-    .get_results::<MintBurn>(&pool.get().unwrap())
-    .unwrap();
+        .get_results::<MintBurn>(&pool.get().context("execute sql query")?)
+        .context("get events from table")?;
 
     for mint in mints {
         let pair = diesel::sql_query(format!(
@@ -298,26 +304,26 @@ pub async fn report_lp_add(
          WHERE id=$1;",
             pair_table
         ))
-        .bind::<BigInt, _>(mint.pair)
-        .get_result::<Pair>(&pool.get().unwrap())
-        .unwrap();
+        .bind::<BigInt, _>(mint.pair_id)
+        .get_result::<Pair>(&pool.get().context("execute sql query")?)
+        .context("get pair from table")?;
 
         // in tx_hash find log of erc20 transfer from 0x00 to tx_origin
         let transfer = diesel::sql_query(format!(
             "SELECT amount \
              FROM {} \
              WHERE id={}, sender={}, receiver={};",
-            lp_transfer_table, mint.pair, C.zero_address, mint.tx_origin
+            lp_transfer_table, mint.pair_id, C.zero_address, mint.tx_origin
         ))
-        .get_result::<Transfer>(&pool.get().unwrap())
-        .unwrap();
+        .get_result::<Transfer>(&pool.get().context("execute sql query")?)
+        .context("get transfer from table")?;
 
         // from table of univ2 lp transfers get one with the same tx_hash 0x00 sender and tx_origin receiver
         // if no such log, use sender
         let event = if pair.gtonToken0 {
             UniV2LPAdd {
                 mint_id: mint.id.clone(),
-                pair_id: mint.pair.clone(),
+                pair_id: mint.pair_id.clone(),
                 pair_title: pair.title.clone(),
                 tx_origin: mint.tx_origin.clone(),
                 amount_gton_in: mint.amount0.clone(),
@@ -330,7 +336,7 @@ pub async fn report_lp_add(
         } else {
             UniV2LPAdd {
                 mint_id: mint.id.clone(),
-                pair_id: mint.pair.clone(),
+                pair_id: mint.pair_id.clone(),
                 pair_title: pair.title.clone(),
                 tx_origin: mint.tx_origin.clone(),
                 amount_gton_in: mint.amount1.clone(),
@@ -365,14 +371,16 @@ pub async fn report_lp_add(
         .bind::<Timestamp, _>(&event.stamp)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
         match result {
             // ignore if already processed, panic otherwise
-            Ok(_) => (),
-            Err(DatabaseError(UniqueViolation, _)) => (),
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Ok(_) => Ok(()),
+            Err(DatabaseError(UniqueViolation, _)) => Ok(()),
+            Err(e) => Err(Error::new(e)
+                .context(format!("write to db: {:#?}", &event))),
         };
     }
+    Ok(())
 }
 
 pub async fn report_lp_remove(
@@ -382,7 +390,7 @@ pub async fn report_lp_remove(
     lp_transfer_table: &str,
     lp_remove_table: &str,
     web3: &Web3<Http>,
-) {
+) -> Result<()> {
     // from last block in the report table, get burn table
     let burns = diesel::sql_query(format!(
         "SELECT id, pair_id, amount0, amount1, \
@@ -391,8 +399,8 @@ pub async fn report_lp_remove(
          ORDER BY block_number ASC;",
         burn_table
     ))
-    .get_results::<MintBurn>(&pool.get().unwrap())
-    .unwrap();
+        .get_results::<MintBurn>(&pool.get().context("execute sql query")?)
+        .context("get events from table")?;
 
     for burn in burns {
         let pair = diesel::sql_query(format!(
@@ -401,26 +409,26 @@ pub async fn report_lp_remove(
          WHERE id=$1;",
             pair_table
         ))
-        .bind::<BigInt, _>(burn.pair)
-        .get_result::<Pair>(&pool.get().unwrap())
-        .unwrap();
+        .bind::<BigInt, _>(burn.pair_id)
+        .get_result::<Pair>(&pool.get().context("execute sql query")?)
+        .context("get pair from table")?;
 
         // in tx_hash find log of erc20 transfer from 0x00 to tx_origin
         let transfer = diesel::sql_query(format!(
             "SELECT amount \
              FROM {} \
              WHERE id={}, sender={}, receiver={};",
-            lp_transfer_table, burn.pair, pair.address, C.zero_address
+            lp_transfer_table, burn.pair_id, pair.address, C.zero_address
         ))
-        .get_result::<Transfer>(&pool.get().unwrap())
-        .unwrap();
+        .get_result::<Transfer>(&pool.get().context("execute sql query")?)
+        .context("get transfer from table")?;
 
         // from table of univ2 lp transfers get one with the same tx_hash 0x00 sender and tx_origin receiver
         // if no such log, use sender
         let event = if pair.gtonToken0 {
             UniV2LPRemove {
                 burn_id: burn.id.clone(),
-                pair_id: burn.pair.clone(),
+                pair_id: burn.pair_id.clone(),
                 pair_title: pair.title.clone(),
                 tx_origin: burn.tx_origin.clone(),
                 amount_gton_out: burn.amount0.clone(),
@@ -433,7 +441,7 @@ pub async fn report_lp_remove(
         } else {
             UniV2LPRemove {
                 burn_id: burn.id.clone(),
-                pair_id: burn.pair.clone(),
+                pair_id: burn.pair_id.clone(),
                 pair_title: pair.title.clone(),
                 tx_origin: burn.tx_origin.clone(),
                 amount_gton_out: burn.amount1.clone(),
@@ -468,12 +476,14 @@ pub async fn report_lp_remove(
         .bind::<Timestamp, _>(&event.stamp)
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
-        .execute(&pool.get().unwrap());
+        .execute(&pool.get().context("execute sql query")?);
         match result {
             // ignore if already processed, panic otherwise
-            Ok(_) => (),
-            Err(DatabaseError(UniqueViolation, _)) => (),
-            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+            Ok(_) => Ok(()),
+            Err(DatabaseError(UniqueViolation, _)) => Ok(()),
+            Err(e) => Err(Error::new(e)
+                .context(format!("write to db: {:#?}", &event))),
         };
     }
+    Ok(())
 }
