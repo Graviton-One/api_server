@@ -62,33 +62,33 @@ impl EventsExtractor {
 
     async fn poll_ftm(&self) {
         // get ftm from rpc
-        poll_events_erc20_approval(
-            &self.pool,
-            "events_erc20_approval_ftm",
-            &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+        // poll_events_erc20_approval(
+        //     &self.pool,
+        //     "events_erc20_approval_ftm",
+        //     &self.ftm_web3,
+        //     C.ftm_gton
+        // ).await;
 
-        poll_events_erc20_transfer(
-            &self.pool,
-            "events_erc20_transfer_ftm",
-            &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+        // poll_events_erc20_transfer(
+        //     &self.pool,
+        //     "events_erc20_transfer_ftm",
+        //     &self.ftm_web3,
+        //     C.ftm_gton
+        // ).await;
 
-        poll_events_anyv4_swapin(
-            &self.pool,
-            "events_anyv4_swapin_ftm",
-            &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+        // poll_events_anyv4_swapin(
+        //     &self.pool,
+        //     "events_anyv4_swapin_ftm",
+        //     &self.ftm_web3,
+        //     C.ftm_gton
+        // ).await;
 
-        poll_events_anyv4_swapout(
-            &self.pool,
-            "events_anyv4_swapout_ftm",
-            &self.ftm_web3,
-            C.ftm_gton
-        ).await;
+        // poll_events_anyv4_swapout(
+        //     &self.pool,
+        //     "events_anyv4_swapout_ftm",
+        //     &self.ftm_web3,
+        //     C.ftm_gton
+        // ).await;
 
         poll_events_univ2_pair_created(
             &self.pool,
@@ -127,6 +127,5 @@ impl EventsExtractor {
                 &pair.address,
             ).await;
         }
-
     }
 }

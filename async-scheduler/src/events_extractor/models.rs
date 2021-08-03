@@ -79,6 +79,8 @@ pub struct EventUniV2PairCreated {
     pub address: String,
     pub token0: String,
     pub token1: String,
+    pub gtonToken0: bool,
+    pub title: String,
     pub index: BigDecimal,
     pub stamp: NaiveDateTime,
     pub block_number: i64,

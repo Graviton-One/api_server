@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 
 use web3::transports::Http;
+use web3::contract::{Contract, Options};
 use web3::{
     Web3,
     types::{
@@ -25,7 +26,7 @@ use hex::ToHex;
 
 use crate::DbPool;
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Numeric, Text, Timestamp};
+use diesel::sql_types::{BigInt, Bool, Numeric, Text, Timestamp};
 use diesel::result::Error::DatabaseError;
 use diesel::result::DatabaseErrorKind::UniqueViolation;
 
@@ -219,84 +220,84 @@ pub async fn poll_events_erc20_transfer(
     }
 }
 
-// pub async fn poll_events_anyv4_transfer(
-//     pool: &DbPool,
-//     table_name: &str,
-//     web3: &web3::Web3<Http>,
-//     token: &str,
-// ) {
+pub async fn poll_events_anyv4_transfer(
+    pool: &DbPool,
+    table_name: &str,
+    web3: &web3::Web3<Http>,
+    token: &str,
+) {
 
-//     println!("polling events anyv4 transfer");
-//     // get latest block from db
-//     let last_block: BlockNumber = match diesel::sql_query(
-//         format!("SELECT block_number FROM {} ORDER BY block_number DESC;", table_name),
-//     )
-//         .get_result::<LastBlock>(&pool.get().unwrap()) {
-//             Err(_) => BlockNumber::Earliest,
-//             Ok(e) => BlockNumber::Number(e.block_number.into())
-//         };
-//     println!("starting from block {:#?}", last_block);
+    println!("polling events anyv4 transfer");
+    // get latest block from db
+    let last_block: BlockNumber = match diesel::sql_query(
+        format!("SELECT block_number FROM {} ORDER BY block_number DESC;", table_name),
+    )
+        .get_result::<LastBlock>(&pool.get().unwrap()) {
+            Err(_) => BlockNumber::Earliest,
+            Ok(e) => BlockNumber::Number(e.block_number.into())
+        };
+    println!("starting from block {:#?}", last_block);
 
-//     let mut topics = TopicFilter::default();
-//     topics.topic0 = Topic::This(C.topic0_erc20_transfer.parse().unwrap());
-//     topics.topic2 = Topic::This(C.eth_anyv4_vault.parse().unwrap());
+    let mut topics = TopicFilter::default();
+    topics.topic0 = Topic::This(C.topic0_erc20_transfer.parse().unwrap());
+    topics.topic2 = Topic::This(C.eth_anyv4_vault.parse().unwrap());
 
-//     let filter = FilterBuilder::default()
-//                 .from_block(last_block)
-//                 .to_block(BlockNumber::Latest)
-//                 .address(vec![token.parse().unwrap()])
-//                 .topic_filter(topics)
-//                 .build();
-//     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
+    let filter = FilterBuilder::default()
+                .from_block(last_block)
+                .to_block(BlockNumber::Latest)
+                .address(vec![token.parse().unwrap()])
+                .topic_filter(topics)
+                .build();
+    let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-//     let mut events: Vec<EventERC20Transfer> = vec![];
-//     for e in result.into_iter() {
-//         let sender: String = hex_to_string(Address::from(e.topics[1]));
-//         let receiver: String = hex_to_string(Address::from(e.topics[2]));
-//         let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
-//         let block_number = parse_block_number(&e.block_number);
-//         let stamp = fetch_stamp(&web3, &e.block_number).await;
-//         let tx_hash = hex_to_string(e.transaction_hash.unwrap());
-//         let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
-//         events.push(EventERC20Transfer {
-//             sender,
-//             receiver,
-//             amount,
-//             stamp,
-//             block_number,
-//             tx_hash,
-//             log_index
-//         })
-//     }
+    let mut events: Vec<EventERC20Transfer> = vec![];
+    for e in result.into_iter() {
+        let sender: String = hex_to_string(Address::from(e.topics[1]));
+        let receiver: String = hex_to_string(Address::from(e.topics[2]));
+        let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
+        let block_number = parse_block_number(&e.block_number);
+        let stamp = fetch_stamp(&web3, &e.block_number).await;
+        let tx_hash = hex_to_string(e.transaction_hash.unwrap());
+        let log_index = i64::try_from(e.log_index.unwrap().as_u64()).unwrap();
+        events.push(EventERC20Transfer {
+            sender,
+            receiver,
+            amount,
+            stamp,
+            block_number,
+            tx_hash,
+            log_index
+        })
+    }
 
-//     for event in events {
-//         let result = diesel::sql_query(
-//             format!("insert into {}(\
-//                                sender,\
-//                                receiver,\
-//                                amount,\
-//                                stamp,\
-//                                block_number,\
-//                                tx_hash,
-//                                log_index) VALUES ($1,$2,$3,$4,$5,$6,$7);",
-//             table_name),
-//         )
-//         .bind::<Text, _>(&event.sender)
-//         .bind::<Text, _>(&event.receiver)
-//         .bind::<Numeric, _>(&event.amount)
-//         .bind::<Timestamp, _>(&event.stamp)
-//         .bind::<BigInt, _>(&event.block_number)
-//         .bind::<Text, _>(&event.tx_hash)
-//         .bind::<BigInt, _>(&event.log_index)
-//         .execute(&pool.get().unwrap());
-//         match result {
-//             // ignore if already processed, panic otherwise
-//             Ok(_) => continue,
-//             Err(DatabaseError(UniqueViolation, _)) => continue,
-//             Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
-//         };
-//     }
-// }
+    for event in events {
+        let result = diesel::sql_query(
+            format!("insert into {}(\
+                               sender,\
+                               receiver,\
+                               amount,\
+                               stamp,\
+                               block_number,\
+                               tx_hash,
+                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7);",
+            table_name),
+        )
+        .bind::<Text, _>(&event.sender)
+        .bind::<Text, _>(&event.receiver)
+        .bind::<Numeric, _>(&event.amount)
+        .bind::<Timestamp, _>(&event.stamp)
+        .bind::<BigInt, _>(&event.block_number)
+        .bind::<Text, _>(&event.tx_hash)
+        .bind::<BigInt, _>(&event.log_index)
+        .execute(&pool.get().unwrap());
+        match result {
+            // ignore if already processed, panic otherwise
+            Ok(_) => continue,
+            Err(DatabaseError(UniqueViolation, _)) => continue,
+            Err(e) => panic!("write to db: {:#?}, err {}", &event, e),
+        };
+    }
+}
 
 pub async fn poll_events_anyv4_swapin(
     pool: &DbPool,
@@ -454,6 +455,21 @@ pub async fn poll_events_anyv4_swapout(
     }
 }
 
+async fn get_token_name (web3: &Web3<Http>, token: Address) -> String {
+    let contract = Contract::from_json(
+        web3.eth(),
+        token,
+        include_bytes!("abi/erc20.json"),
+    )
+    .expect("create erc20 contract");
+
+    let res: String = contract
+        .query("name", (), None, Options::default(), None)
+        .await
+        .expect("get token name");
+    res.to_string()
+}
+
 pub async fn poll_events_univ2_pair_created(
     pool: &DbPool,
     table_name: &str,
@@ -506,11 +522,15 @@ pub async fn poll_events_univ2_pair_created(
 
     let mut events: Vec<EventUniV2PairCreated> = vec![];
     for e in result.into_iter() {
-        let token0: String = e.topics[1].to_string();
-        let token1: String = e.topics[2].to_string();
+        let token0: String = hex_to_string(Address::from(e.topics[1]));
+        let token1: String = hex_to_string(Address::from(e.topics[2]));
         let mut address_bytes: [u8; 20] = [0;20];
         address_bytes.copy_from_slice(&e.data.0[12..32]);
         let address = hex_to_string(Address::from(&address_bytes));
+        let gtonToken0: bool = token0 == token;
+        let title0 = get_token_name(&web3, Address::from(e.topics[1])).await;
+        let title1 = get_token_name(&web3, Address::from(e.topics[2])).await;
+        let title = title0 + "-" + &title1;
         let index_str = U256::from(&e.data.0[32..64]).to_string();
         let index = BigDecimal::from_str(&index_str).unwrap();
         let block_number = parse_block_number(&e.block_number);
@@ -522,6 +542,8 @@ pub async fn poll_events_univ2_pair_created(
             token0,
             token1,
             index,
+            gtonToken0,
+            title,
             stamp,
             block_number,
             tx_hash,
@@ -535,16 +557,20 @@ pub async fn poll_events_univ2_pair_created(
                                address,\
                                token0,\
                                token1,\
+                               gtonToken0,\
+                               title,\
                                index,\
                                stamp,\
                                block_number,\
                                tx_hash,
-                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8);",
+                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);",
             table_name),
         )
         .bind::<Text, _>(&event.address)
         .bind::<Text, _>(&event.token0)
         .bind::<Text, _>(&event.token1)
+        .bind::<Bool, _>(&event.gtonToken0)
+        .bind::<Text, _>(&event.title)
         .bind::<Numeric, _>(&event.index)
         .bind::<Timestamp, _>(&event.stamp)
         .bind::<BigInt, _>(&event.block_number)
@@ -571,7 +597,11 @@ pub async fn poll_events_univ2_swap(
     println!("polling events univ2 swap");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(
-        format!("SELECT block_number FROM {} ORDER BY block_number DESC;", table_name),
+        format!("SELECT block_number FROM {} \
+                 WHERE pair = {} \
+                 ORDER BY block_number DESC;",
+                table_name,
+                pair_id),
     )
         .get_result::<LastBlock>(&pool.get().unwrap()) {
             Err(_) => BlockNumber::Earliest,
@@ -670,7 +700,9 @@ pub async fn poll_events_univ2_mint(
     println!("polling events univ2 mint");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(
-        format!("SELECT block_number FROM {} ORDER BY block_number DESC;", table_name),
+        format!("SELECT block_number FROM {} \
+                 WHERE pair = {} \
+                 ORDER BY block_number DESC;", table_name, pair_id),
     )
         .get_result::<LastBlock>(&pool.get().unwrap()) {
             Err(_) => BlockNumber::Earliest,
@@ -755,7 +787,9 @@ pub async fn poll_events_univ2_burn(
     println!("polling events univ2 burn");
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(
-        format!("SELECT block_number FROM {} ORDER BY block_number DESC;", table_name),
+        format!("SELECT block_number FROM {} \
+                 WHERE pair = {} \
+                 ORDER BY block_number DESC;", table_name, pair_id),
     )
         .get_result::<LastBlock>(&pool.get().unwrap()) {
             Err(_) => BlockNumber::Earliest,

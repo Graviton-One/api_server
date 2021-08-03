@@ -236,7 +236,7 @@ pub async fn parse_events_anyv4_swapout(vs: Vec<Value>) -> Result<Vec<EventAnyV4
     Ok(events)
 }
 
-pub fn parse_event_univ2_pair_created(e: Event) -> Result<EventUniV2PairCreated> {
+pub fn parse_event_univ2_pair_created(e: Event, gton: &str) -> Result<EventUniV2PairCreated> {
     let token0 = parse_bytes32_to_address(&e.topics[1])?;
     let token1 = parse_bytes32_to_address(&e.topics[2])?;
     let data = &e.data.trim_start_matches("0x");
@@ -244,6 +244,8 @@ pub fn parse_event_univ2_pair_created(e: Event) -> Result<EventUniV2PairCreated>
     let address = parse_bytes32_to_address(&format!("0x{}", data1))?;
     let data2 = data.chars().skip(64).collect::<String>();
     let index = parse_bytes32_to_decimal(&format!("0x{}", data2))?;
+    let gtonToken0 = token0 == gton;
+    let title = token0.clone() + &token1;
     let stamp = NaiveDateTime::from_timestamp(
         i64::from_str_radix(&e.stamp.trim_start_matches("0x"), 16)
             .context("parse stamp as timestamp")?,
@@ -262,6 +264,8 @@ pub fn parse_event_univ2_pair_created(e: Event) -> Result<EventUniV2PairCreated>
         address,
         token0,
         token1,
+        gtonToken0,
+        title,
         index,
         stamp,
         block_number,
@@ -270,13 +274,13 @@ pub fn parse_event_univ2_pair_created(e: Event) -> Result<EventUniV2PairCreated>
     })
 }
 
-pub async fn parse_events_univ2_pair_created(vs: Vec<Value>) -> Result<Vec<EventUniV2PairCreated>> {
+pub async fn parse_events_univ2_pair_created(vs: Vec<Value>, gton: &str) -> Result<Vec<EventUniV2PairCreated>> {
 
     println!("parsing events univ2 pair created");
     let mut events: Vec<EventUniV2PairCreated> = vec![];
     for v in vs.into_iter() {
         let e = parse_value_to_event(v)?;
-        let event = parse_event_univ2_pair_created(e)?;
+        let event = parse_event_univ2_pair_created(e, gton)?;
         events.push(event);
     }
 

@@ -424,7 +424,7 @@ pub async fn poll_events_univ2_pair_created(
     )
     .await.unwrap();
 
-    let events_univ2_pair_created = parse_events_univ2_pair_created(values_univ2_pair_created)
+    let events_univ2_pair_created = parse_events_univ2_pair_created(values_univ2_pair_created, gton)
     .await
     .unwrap();
     for event in events_univ2_pair_created {
