@@ -98,7 +98,7 @@ pub async fn report_buy(
 
     // from last block in the report table, get swap table,
     let swaps = diesel::sql_query(format!(
-        "SELECT id, pair, tx_origin, amount0_in, amount1_in, \
+        "SELECT id, pair_id, tx_origin, amount0_in, amount1_in, \
          amount0_out, amount1_out, stamp, block_number, tx_hash, log_index \
          FROM {} \
          ORDER BY block_number ASC;", swap_table))
@@ -112,7 +112,6 @@ pub async fn report_buy(
          WHERE id = $1;", pair_table))
         .bind::<BigInt,_>(swap.pair)
         .get_result::<Pair>(&pool.get().unwrap()).unwrap();
-
 
         if (pair.gtonToken0 &&
             swap.amount1_in != 0.into() &&
@@ -190,7 +189,7 @@ pub async fn report_sell(
 
     // from last block in the report table, get swap table,
     let swaps = diesel::sql_query(format!(
-        "SELECT id, pair, tx_origin, amount0_in, amount1_in, \
+        "SELECT id, pair_id, tx_origin, amount0_in, amount1_in, \
          amount0_out, amount1_out, stamp, block_number, tx_hash, log_index \
          FROM {} \
          ORDER BY block_number ASC;", swap_table))
@@ -282,7 +281,7 @@ pub async fn report_lp_add(
 
     // from last block in the report table, get mint table
     let mints = diesel::sql_query(format!(
-        "SELECT id, pair, amount0, amount1, \
+        "SELECT id, pair_id, amount0, amount1, \
          stamp, block_number, tx_hash, log_index \
          FROM {} \
          ORDER BY block_number ASC;", mint_table))
@@ -381,7 +380,7 @@ pub async fn report_lp_remove(
 
     // from last block in the report table, get burn table
     let burns = diesel::sql_query(format!(
-        "SELECT id, pair, amount0, amount1, \
+        "SELECT id, pair_id, amount0, amount1, \
          stamp, block_number, tx_hash, log_index \
          FROM {} \
          ORDER BY block_number ASC;", burn_table))

@@ -91,8 +91,7 @@ pub async fn poll_events_erc20_approval(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let owner: String = hex_to_string(Address::from(e.topics[1]));
         let spender: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
@@ -135,6 +134,10 @@ pub async fn poll_events_erc20_approval(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -173,7 +176,7 @@ pub async fn poll_events_erc20_transfer(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
@@ -216,6 +219,10 @@ pub async fn poll_events_erc20_transfer(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -255,7 +262,7 @@ pub async fn poll_events_anyv4_transfer(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
@@ -298,6 +305,10 @@ pub async fn poll_events_anyv4_transfer(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -337,7 +348,7 @@ pub async fn poll_events_anyv4_swapin(
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
     let mut events: Vec<EventAnyV4Swapin> = vec![];
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let transfer_tx_hash: String = hex_to_string(e.topics[1]);
         let account: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
@@ -380,6 +391,10 @@ pub async fn poll_events_anyv4_swapin(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -419,7 +434,7 @@ pub async fn poll_events_anyv4_swapout(
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
     let mut events: Vec<EventAnyV4Swapout> = vec![];
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let account: String = hex_to_string(Address::from(e.topics[1]));
         let bindaddr: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
@@ -462,6 +477,10 @@ pub async fn poll_events_anyv4_swapout(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -536,7 +555,7 @@ pub async fn poll_events_univ2_pair_created(
 
     let result = [result1, result2].concat();
 
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let token0: String = hex_to_string(Address::from(e.topics[1]));
         let token1: String = hex_to_string(Address::from(e.topics[2]));
         let mut address_bytes: [u8; 20] = [0;20];
@@ -596,6 +615,10 @@ pub async fn poll_events_univ2_pair_created(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -635,7 +658,7 @@ pub async fn poll_events_univ2_transfer(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
         let amount: BigDecimal = BigDecimal::from_str(&U256::from_big_endian(&e.data.0).to_string()).unwrap();
@@ -680,6 +703,10 @@ pub async fn poll_events_univ2_transfer(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -722,7 +749,7 @@ pub async fn poll_events_univ2_swap(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
 
@@ -785,6 +812,10 @@ pub async fn poll_events_univ2_swap(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -826,7 +857,7 @@ pub async fn poll_events_univ2_mint(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
 
         let amount0_str = U256::from(&e.data.0[..32]).to_string();
@@ -875,6 +906,10 @@ pub async fn poll_events_univ2_mint(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
@@ -916,7 +951,7 @@ pub async fn poll_events_univ2_burn(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    for e in result.into_iter() {
+    for (i,e) in result.into_iter().enumerate() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
 
@@ -969,6 +1004,10 @@ pub async fn poll_events_univ2_burn(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().unwrap());
+
+        #[cfg(target_os = "macos")]
+        if i == 10 { return }
+
         match result {
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
