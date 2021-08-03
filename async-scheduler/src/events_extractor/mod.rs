@@ -4,15 +4,15 @@ use diesel::sql_types::{BigInt, Double, Timestamp, Text};
 use web3::transports::Http;
 
 use crate::DbPool;
-pub mod parsers;
-pub mod pollers;
-pub mod fetchers;
-pub mod pollers_web3;
 pub mod models;
 pub mod constants;
+pub mod pollers;
+pub mod reports;
 use constants::C;
 use pollers::poll_events_anyv4_transfer;
-use pollers_web3::*;
+use pollers::*;
+use reports::*;
+use models::*;
 
 #[derive(QueryableByName, PartialEq, Debug)]
 struct Pair {
@@ -55,7 +55,9 @@ impl EventsExtractor {
         // get ethereum from etherscan for now
         poll_events_anyv4_transfer(
             &self.pool,
-            &self.ethscan_api_key
+            "events_anyv4_transfer",
+            &self.ftm_web3,
+            C.eth_gton
         ).await;
 
     }
@@ -105,6 +107,15 @@ impl EventsExtractor {
             .get_results::<Pair>(&self.pool.get().unwrap()).unwrap();
 
         for pair in pairs {
+
+            poll_events_univ2_transfer(
+                &self.pool,
+                "events_univ2_transfer_spirit",
+                &self.ftm_web3,
+                pair.id,
+                &pair.address,
+            ).await;
+
             poll_events_univ2_swap(
                 &self.pool,
                 "events_univ2_swap_spirit",
@@ -127,5 +138,21 @@ impl EventsExtractor {
                 &pair.address,
             ).await;
         }
+
+        report_buy(
+            &self.pool,
+            "events_univ2_pair_created_spirit",
+            "events_univ2_swap_spirit",
+            "univ2_buy_spirit",
+            &self.ftm_web3,
+        ).await;
+
+        report_sell(
+            &self.pool,
+            "events_univ2_pair_created_spirit",
+            "events_univ2_swap_spirit",
+            "univ2_sell_spirit",
+            &self.ftm_web3,
+        ).await;
     }
 }

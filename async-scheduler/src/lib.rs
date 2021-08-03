@@ -6,7 +6,6 @@ extern crate anyhow;
 pub mod price_coingecko;
 pub mod keeper_extractor;
 pub mod events_extractor;
-pub mod events_reports;
 pub mod forum_extractor;
 pub mod schema;
 
