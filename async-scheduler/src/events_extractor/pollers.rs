@@ -92,7 +92,6 @@ pub async fn poll_events_erc20_approval(
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
 
-    let mut events: Vec<EventERC20Approval> = vec![];
     for e in result.into_iter() {
         let owner: String = hex_to_string(Address::from(e.topics[1]));
         let spender: String = hex_to_string(Address::from(e.topics[2]));
@@ -104,7 +103,7 @@ pub async fn poll_events_erc20_approval(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventERC20Approval {
+        let event = EventERC20Approval {
             tx_origin,
             owner,
             spender,
@@ -113,10 +112,8 @@ pub async fn poll_events_erc20_approval(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                tx_origin,\
@@ -176,7 +173,6 @@ pub async fn poll_events_erc20_transfer(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    let mut events: Vec<EventERC20Transfer> = vec![];
     for e in result.into_iter() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -188,7 +184,7 @@ pub async fn poll_events_erc20_transfer(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventERC20Transfer {
+        let event = EventERC20Transfer {
             tx_origin,
             sender,
             receiver,
@@ -197,10 +193,8 @@ pub async fn poll_events_erc20_transfer(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                tx_origin,\
@@ -261,7 +255,6 @@ pub async fn poll_events_anyv4_transfer(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    let mut events: Vec<EventERC20Transfer> = vec![];
     for e in result.into_iter() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -273,7 +266,7 @@ pub async fn poll_events_anyv4_transfer(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventERC20Transfer {
+        let event = EventERC20Transfer {
             tx_origin,
             sender,
             receiver,
@@ -282,10 +275,8 @@ pub async fn poll_events_anyv4_transfer(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                tx_origin,\
@@ -357,7 +348,7 @@ pub async fn poll_events_anyv4_swapin(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventAnyV4Swapin {
+        let event = EventAnyV4Swapin {
             tx_origin,
             transfer_tx_hash,
             account,
@@ -366,10 +357,8 @@ pub async fn poll_events_anyv4_swapin(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                tx_origin,\
@@ -441,7 +430,7 @@ pub async fn poll_events_anyv4_swapout(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventAnyV4Swapout {
+        let event = EventAnyV4Swapout {
             tx_origin,
             account,
             bindaddr,
@@ -450,10 +439,8 @@ pub async fn poll_events_anyv4_swapout(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                tx_origin,\
@@ -549,7 +536,6 @@ pub async fn poll_events_univ2_pair_created(
 
     let result = [result1, result2].concat();
 
-    let mut events: Vec<EventUniV2PairCreated> = vec![];
     for e in result.into_iter() {
         let token0: String = hex_to_string(Address::from(e.topics[1]));
         let token1: String = hex_to_string(Address::from(e.topics[2]));
@@ -569,7 +555,7 @@ pub async fn poll_events_univ2_pair_created(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventUniV2PairCreated {
+        let event = EventUniV2PairCreated {
             tx_origin,
             address,
             token0,
@@ -581,10 +567,8 @@ pub async fn poll_events_univ2_pair_created(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                tx_origin,\
@@ -651,7 +635,6 @@ pub async fn poll_events_univ2_transfer(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    let mut events: Vec<EventERC20Transfer> = vec![];
     for e in result.into_iter() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -663,7 +646,7 @@ pub async fn poll_events_univ2_transfer(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventERC20Transfer {
+        let event = EventERC20Transfer {
             tx_origin,
             sender,
             receiver,
@@ -672,10 +655,8 @@ pub async fn poll_events_univ2_transfer(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                pair_id,\
@@ -741,7 +722,6 @@ pub async fn poll_events_univ2_swap(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    let mut events: Vec<EventUniV2Swap> = vec![];
     for e in result.into_iter() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -762,7 +742,7 @@ pub async fn poll_events_univ2_swap(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventUniV2Swap {
+        let event = EventUniV2Swap {
             tx_origin,
             sender,
             receiver,
@@ -774,10 +754,8 @@ pub async fn poll_events_univ2_swap(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                pair_id,\
@@ -848,7 +826,6 @@ pub async fn poll_events_univ2_mint(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    let mut events: Vec<EventUniV2Mint> = vec![];
     for e in result.into_iter() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
 
@@ -864,7 +841,7 @@ pub async fn poll_events_univ2_mint(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventUniV2Mint {
+        let event = EventUniV2Mint {
             tx_origin,
             sender,
             amount0,
@@ -873,10 +850,8 @@ pub async fn poll_events_univ2_mint(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                pair_id,\
@@ -941,7 +916,6 @@ pub async fn poll_events_univ2_burn(
                 .build();
     let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
 
-    let mut events: Vec<EventUniV2Burn> = vec![];
     for e in result.into_iter() {
         let sender: String = hex_to_string(Address::from(e.topics[1]));
         let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -958,7 +932,7 @@ pub async fn poll_events_univ2_burn(
         // get transaction origin
         let tx = &web3.eth().transaction(TransactionId::Hash(tx_hash.parse().unwrap())).await.unwrap().unwrap();
         let tx_origin = hex_to_string(tx.from);
-        events.push(EventUniV2Burn {
+        let event = EventUniV2Burn {
             tx_origin,
             sender,
             receiver,
@@ -968,10 +942,8 @@ pub async fn poll_events_univ2_burn(
             block_number,
             tx_hash,
             log_index
-        })
-    }
+        };
 
-    for event in events {
         let result = diesel::sql_query(
             format!("insert into {}(\
                                pair_id,\
