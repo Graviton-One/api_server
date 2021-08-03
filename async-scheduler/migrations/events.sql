@@ -158,15 +158,30 @@ log_index bigInt not null,
 unique (tx_hash, log_index)
 );
 
-create table univ2_lp_add(
+create table univ2_lp_add_spirit(
 id bigserial primary key,
 mint_id bigInt references events_univ2_mint_spirit(id),
 pair_id bigInt references events_univ2_pair_created_spirit(id),
 pair_title text not null,
 tx_origin text not null,
 amount_gton_in numeric not null,
-amount_token_out numeric not null,
+amount_token_in numeric not null,
 amount_lp_out numeric not null,
+stamp timestamp not null,
+tx_hash text not null,
+log_index bigInt not null,
+unique (tx_hash, log_index)
+);
+
+create table univ2_lp_remove_spirit(
+id bigserial primary key,
+mint_id bigInt references events_univ2_mint_spirit(id),
+pair_id bigInt references events_univ2_pair_created_spirit(id),
+pair_title text not null,
+tx_origin text not null,
+amount_gton_out numeric not null,
+amount_token_out numeric not null,
+amount_lp_in numeric not null,
 stamp timestamp not null,
 tx_hash text not null,
 log_index bigInt not null,

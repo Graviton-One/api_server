@@ -19,6 +19,7 @@ pub struct Constants {
     pub topic0_univ2_mint: &'static str,
     pub topic0_univ2_pair_created: &'static str,
     pub topic0_univ2_swap: &'static str,
+    pub zero_address: &'static str,
 }
 
 pub static C: Constants = Constants {
@@ -42,4 +43,5 @@ pub static C: Constants = Constants {
     topic0_univ2_pair_created: "0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9",
     topic0_univ2_mint: "0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f",
     topic0_univ2_burn: "0xdccd412f0b1252819cb1fd330b93224ca42612892bb3f4f789976e6d81936496",
+    zero_address: "0x0000000000000000000000000000000000000000"
 };
