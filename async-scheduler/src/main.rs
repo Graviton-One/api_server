@@ -1,4 +1,4 @@
-// use tokio_cron_scheduler::{JobScheduler, JobToRun, Job};
+use tokio_cron_scheduler::{JobScheduler, JobToRun, Job};
 
 use async_scheduler::price_coingecko::CoingeckoPrice;
 use async_scheduler::keeper_extractor::KeeperExtractor;
@@ -10,7 +10,7 @@ use diesel::PgConnection;
 
 #[tokio::main]
 async fn main() {
-    // let mut sched = JobScheduler::new();
+     let mut sched = JobScheduler::new();
 
     let manager =
         ConnectionManager::<PgConnection>::new(std::env::var("DATABASE_URL")
@@ -26,19 +26,19 @@ async fn main() {
 
     let p = pool.clone();
     tokio::task::spawn(async move {
-        ForumExtractor::new(p.clone()).run().await;
-    });
-
-    let p = pool.clone();
-    tokio::task::spawn(async move {
         KeeperExtractor::new(p.clone()).run().await;
     });
 
-    // sched.add(Job::new("0 0 * * * *", move |_,_| {
-    //     let p = pool.clone();
-    //     tokio::task::spawn(async move {
-    //         CoingeckoPrice::new(p.clone()).run().await;
-    // });}).unwrap()).unwrap();
+    sched.add(Job::new("0 0 * * * *", move |_,_| {
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+             CoingeckoPrice::new(p).run().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+            ForumExtractor::new(p).run().await;
+         });
+    }).unwrap()).unwrap();
 
-    // sched.start().await.unwrap();
+    sched.start().await.unwrap();
 }

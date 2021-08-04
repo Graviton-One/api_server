@@ -60,7 +60,7 @@ impl ForumExtractor {
             let date = Utc::now().checked_sub_signed(chrono::Duration::days(n)).unwrap().naive_local().date();
             poll_forum_reports(&self.pool, &date, &self.forum_api_key).await;
 
-            tokio::time::delay_for(std::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         }
     }
 }
