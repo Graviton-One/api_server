@@ -3,7 +3,6 @@ use actix_web::{App, HttpRequest, HttpServer, Responder, web, HttpResponse};
 use diesel::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use gton_api_server::{
-    DbPool,
     ChainConfig,
 };
 
@@ -16,7 +15,7 @@ use gton_api_server::fee_giver::routes::{
 use gton_api_server::gton_stats::routes::{
     gton_cost,
 };
-use actix_web::http::header;
+
 use dotenv;
 use actix_cors::Cors;
 
@@ -52,7 +51,7 @@ async fn main() -> std::io::Result<()> {
 
     // Start HTTP server
     use std::sync::Arc;
-    use actix_web::http;
+    
     let config = Arc::new(config);
 
     HttpServer::new(move || {
