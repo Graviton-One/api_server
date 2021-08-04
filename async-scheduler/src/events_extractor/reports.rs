@@ -2,15 +2,12 @@ use anyhow::{Context, Result, Error};
 
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind::UniqueViolation;
-use diesel::result::Error::DatabaseError;
+use diesel::result::Error::{NotFound, DatabaseError};
 use diesel::sql_types::{BigInt, Bool, Numeric, Text, Timestamp};
 
 use hex::ToHex;
 
 use std::str::FromStr;
-use web3::transports::Http;
-use web3::{types::TransactionId, Web3};
-
 use super::models::*;
 use crate::DbPool;
 
@@ -95,7 +92,6 @@ pub async fn report_buy(
     pair_table: &str,
     swap_table: &str,
     buy_table: &str,
-    web3: &Web3<Http>,
 ) -> Result<()> {
     // from last block in the report table, get swap table,
     let swaps: Vec<Swap> = diesel::sql_query(format!(
@@ -174,10 +170,9 @@ pub async fn report_buy(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => Ok(()),
-                Err(DatabaseError(UniqueViolation, _)) => Ok(()),
-                Err(e) => Err(Error::new(e)
-                    .context(format!("write to db: {:#?}", &event))),
+                Ok(_) => continue,
+                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Err(e) => bail!(e),
             };
         }
     }
@@ -189,7 +184,6 @@ pub async fn report_sell(
     pair_table: &str,
     swap_table: &str,
     sell_table: &str,
-    web3: &Web3<Http>,
 ) -> Result<()> {
     // from last block in the report table, get swap table,
     let swaps = diesel::sql_query(format!(
@@ -268,10 +262,9 @@ pub async fn report_sell(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => Ok(()),
-                Err(DatabaseError(UniqueViolation, _)) => Ok(()),
-                Err(e) => Err(Error::new(e)
-                .context(format!("write to db: {:#?}", &event))),
+                Ok(_) => continue,
+                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Err(e) => bail!(e),
             };
         }
     }
@@ -284,11 +277,10 @@ pub async fn report_lp_add(
     mint_table: &str,
     lp_transfer_table: &str,
     lp_add_table: &str,
-    web3: &Web3<Http>,
 ) -> Result<()> {
     // from last block in the report table, get mint table
     let mints = diesel::sql_query(format!(
-        "SELECT id, pair_id, amount0, amount1, \
+        "SELECT id, pair_id, tx_origin, amount0, amount1, \
          stamp, block_number, tx_hash, log_index \
          FROM {} \
          ORDER BY block_number ASC;",
@@ -309,14 +301,24 @@ pub async fn report_lp_add(
         .context("get pair from table")?;
 
         // in tx_hash find log of erc20 transfer from 0x00 to tx_origin
-        let transfer = diesel::sql_query(format!(
+        let transfer_result = diesel::sql_query(format!(
             "SELECT amount \
              FROM {} \
-             WHERE id={}, sender={}, receiver={};",
-            lp_transfer_table, mint.pair_id, C.zero_address, mint.tx_origin
+             WHERE id={} AND sender='{}' AND receiver='{}';",
+            lp_transfer_table,
+            mint.pair_id,
+            C.zero_address,
+            mint.tx_origin
         ))
-        .get_result::<Transfer>(&pool.get().context("execute sql query")?)
-        .context("get transfer from table")?;
+            .get_result::<Transfer>(&pool.get().context("execute sql query")?);
+        let amount_lp_out = match transfer_result {
+            Ok(transfer) => transfer.amount,
+            Err(NotFound) => {
+                println!("no lp transfers match remove liquidity, {}", pair.title);
+                0.into()
+            },
+            Err(e) => bail!(e),
+        };
 
         // from table of univ2 lp transfers get one with the same tx_hash 0x00 sender and tx_origin receiver
         // if no such log, use sender
@@ -328,7 +330,7 @@ pub async fn report_lp_add(
                 tx_origin: mint.tx_origin.clone(),
                 amount_gton_in: mint.amount0.clone(),
                 amount_token_in: mint.amount1.clone(),
-                amount_lp_out: transfer.amount.clone(),
+                amount_lp_out,
                 stamp: mint.stamp.clone(),
                 tx_hash: mint.tx_hash.clone(),
                 log_index: mint.log_index.clone(),
@@ -341,7 +343,7 @@ pub async fn report_lp_add(
                 tx_origin: mint.tx_origin.clone(),
                 amount_gton_in: mint.amount1.clone(),
                 amount_token_in: mint.amount0.clone(),
-                amount_lp_out: transfer.amount.clone(),
+                amount_lp_out,
                 stamp: mint.stamp.clone(),
                 tx_hash: mint.tx_hash.clone(),
                 log_index: mint.log_index.clone(),
@@ -374,10 +376,9 @@ pub async fn report_lp_add(
         .execute(&pool.get().context("execute sql query")?);
         match result {
             // ignore if already processed, panic otherwise
-            Ok(_) => Ok(()),
-            Err(DatabaseError(UniqueViolation, _)) => Ok(()),
-            Err(e) => Err(Error::new(e)
-                .context(format!("write to db: {:#?}", &event))),
+            Ok(_) => continue,
+            Err(DatabaseError(UniqueViolation, _)) => continue,
+            Err(e) => bail!(e),
         };
     }
     Ok(())
@@ -389,11 +390,10 @@ pub async fn report_lp_remove(
     burn_table: &str,
     lp_transfer_table: &str,
     lp_remove_table: &str,
-    web3: &Web3<Http>,
 ) -> Result<()> {
     // from last block in the report table, get burn table
     let burns = diesel::sql_query(format!(
-        "SELECT id, pair_id, amount0, amount1, \
+        "SELECT id, pair_id, tx_origin, amount0, amount1, \
          stamp, block_number, tx_hash, log_index \
          FROM {} \
          ORDER BY block_number ASC;",
@@ -414,14 +414,25 @@ pub async fn report_lp_remove(
         .context("get pair from table")?;
 
         // in tx_hash find log of erc20 transfer from 0x00 to tx_origin
-        let transfer = diesel::sql_query(format!(
+        let transfer_result = diesel::sql_query(format!(
             "SELECT amount \
              FROM {} \
-             WHERE id={}, sender={}, receiver={};",
-            lp_transfer_table, burn.pair_id, pair.address, C.zero_address
+             WHERE id={} AND sender='{}' AND receiver='{}';",
+            lp_transfer_table,
+            burn.pair_id,
+            pair.address,
+            C.zero_address
         ))
-        .get_result::<Transfer>(&pool.get().context("execute sql query")?)
-        .context("get transfer from table")?;
+        .get_result::<Transfer>(&pool.get().context("execute sql query")?);
+
+        let amount_lp_in = match transfer_result {
+            Ok(transfer) => transfer.amount,
+            Err(NotFound) => {
+                println!("no lp transfers match remove liquidity, {}", pair.title);
+                0.into()
+            },
+            Err(e) => bail!(e),
+        };
 
         // from table of univ2 lp transfers get one with the same tx_hash 0x00 sender and tx_origin receiver
         // if no such log, use sender
@@ -433,7 +444,7 @@ pub async fn report_lp_remove(
                 tx_origin: burn.tx_origin.clone(),
                 amount_gton_out: burn.amount0.clone(),
                 amount_token_out: burn.amount1.clone(),
-                amount_lp_in: transfer.amount.clone(),
+                amount_lp_in,
                 stamp: burn.stamp.clone(),
                 tx_hash: burn.tx_hash.clone(),
                 log_index: burn.log_index.clone(),
@@ -446,7 +457,7 @@ pub async fn report_lp_remove(
                 tx_origin: burn.tx_origin.clone(),
                 amount_gton_out: burn.amount1.clone(),
                 amount_token_out: burn.amount0.clone(),
-                amount_lp_in: transfer.amount.clone(),
+                amount_lp_in,
                 stamp: burn.stamp.clone(),
                 tx_hash: burn.tx_hash.clone(),
                 log_index: burn.log_index.clone(),
@@ -479,10 +490,9 @@ pub async fn report_lp_remove(
         .execute(&pool.get().context("execute sql query")?);
         match result {
             // ignore if already processed, panic otherwise
-            Ok(_) => Ok(()),
-            Err(DatabaseError(UniqueViolation, _)) => Ok(()),
-            Err(e) => Err(Error::new(e)
-                .context(format!("write to db: {:#?}", &event))),
+            Ok(_) => continue,
+            Err(DatabaseError(UniqueViolation, _)) => continue,
+            Err(e) => bail!(e),
         };
     }
     Ok(())

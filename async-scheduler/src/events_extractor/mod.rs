@@ -173,7 +173,6 @@ impl EventsExtractor {
             "events_univ2_pair_created_spirit",
             "events_univ2_swap_spirit",
             "univ2_buy_spirit",
-            &self.ftm_web3,
         )
         .await;
         match_error(result);
@@ -183,7 +182,26 @@ impl EventsExtractor {
             "events_univ2_pair_created_spirit",
             "events_univ2_swap_spirit",
             "univ2_sell_spirit",
-            &self.ftm_web3,
+        )
+        .await;
+        match_error(result);
+
+        let result = report_lp_add(
+            &self.pool,
+            "events_univ2_pair_created_spirit",
+            "events_univ2_mint_spirit",
+            "events_univ2_transfer_spirit",
+            "univ2_lp_add_spirit",
+        )
+        .await;
+        match_error(result);
+
+        let result = report_lp_remove(
+            &self.pool,
+            "events_univ2_pair_created_spirit",
+            "events_univ2_burn_spirit",
+            "events_univ2_transfer_spirit",
+            "univ2_lp_remove_spirit",
         )
         .await;
         match_error(result);
@@ -191,14 +209,14 @@ impl EventsExtractor {
 }
 
 fn match_error<T>(result: Result<T>) {
-    let internal_rpc_error = anyhow!(jsonrpc_core::types::error::Error {
-        code: jsonrpc_core::types::error::ErrorCode::InternalError,
-        message: String::from("Internal error"),
-        data: None
-    });
+    // match on this for possible rate limit
+    // let internal_rpc_error = anyhow!(jsonrpc_core::types::error::Error {
+    //     code: jsonrpc_core::types::error::ErrorCode::InternalError,
+    //     message: String::from("Internal error"),
+    //     data: None
+    // });
     match result {
         Ok(_) => (),
-        Err(internal_rpc_error) => println!("internal rpc error"),
-        Err(e) => panic!("{}", e),
+        Err(e) => println!("{}", e),
     }
 }

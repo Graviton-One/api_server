@@ -68,7 +68,10 @@ pub async fn poll_events_erc20_approval(
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from approval table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest
+        },
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -135,7 +138,7 @@ pub async fn poll_events_erc20_approval(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -143,8 +146,7 @@ pub async fn poll_events_erc20_approval(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -164,7 +166,10 @@ pub async fn poll_events_erc20_transfer(
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from erc20 transfer table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest
+        },
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -231,7 +236,7 @@ pub async fn poll_events_erc20_transfer(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -239,8 +244,7 @@ pub async fn poll_events_erc20_transfer(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -260,7 +264,10 @@ pub async fn poll_events_anyv4_transfer(
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest
+        },
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -331,7 +338,7 @@ pub async fn poll_events_anyv4_transfer(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -339,8 +346,7 @@ pub async fn poll_events_anyv4_transfer(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -360,7 +366,10 @@ pub async fn poll_events_anyv4_swapin(
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest
+        },
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -428,7 +437,7 @@ pub async fn poll_events_anyv4_swapin(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -436,8 +445,7 @@ pub async fn poll_events_anyv4_swapin(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -457,7 +465,10 @@ pub async fn poll_events_anyv4_swapout(
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest
+        },
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -525,7 +536,7 @@ pub async fn poll_events_anyv4_swapout(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -533,8 +544,7 @@ pub async fn poll_events_anyv4_swapout(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -566,7 +576,10 @@ pub async fn poll_events_univ2_pair_created(
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest
+        },
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -631,9 +644,9 @@ pub async fn poll_events_univ2_pair_created(
             address,
             token0,
             token1,
-            index,
             gtonToken0,
             title,
+            index,
             stamp,
             block_number,
             tx_hash,
@@ -652,7 +665,7 @@ pub async fn poll_events_univ2_pair_created(
                                stamp,\
                                block_number,\
                                tx_hash,
-                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$2,$11);",
+                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11);",
             table_name
         ))
         .bind::<Text, _>(&event.tx_origin)
@@ -669,7 +682,7 @@ pub async fn poll_events_univ2_pair_created(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -677,8 +690,7 @@ pub async fn poll_events_univ2_pair_created(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -699,7 +711,10 @@ pub async fn poll_events_univ2_transfer(
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest
+        },
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -768,7 +783,7 @@ pub async fn poll_events_univ2_transfer(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -776,8 +791,7 @@ pub async fn poll_events_univ2_transfer(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -793,13 +807,16 @@ pub async fn poll_events_univ2_swap(
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} \
-                 WHERE pair = {} \
+                 WHERE pair_id = {} \
                  ORDER BY block_number DESC;",
         table_name, pair_id
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
     {
-        Err(_) => BlockNumber::Earliest,
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            BlockNumber::Earliest}
+        ,
         Ok(e) => BlockNumber::Number(e.block_number.into()),
     };
     println!("starting from block {:#?}", last_block);
@@ -867,7 +884,7 @@ pub async fn poll_events_univ2_swap(
                                stamp,\
                                block_number,\
                                tx_hash,
-                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$2,$11,$12);",
+                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);",
             table_name
         ))
         .bind::<BigInt, _>(pair_id)
@@ -885,7 +902,7 @@ pub async fn poll_events_univ2_swap(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -893,8 +910,7 @@ pub async fn poll_events_univ2_swap(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -911,7 +927,7 @@ pub async fn poll_events_univ2_mint(
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} \
-                 WHERE pair = {} \
+                 WHERE pair_id = {} \
                  ORDER BY block_number DESC;",
         table_name, pair_id
     ))
@@ -989,7 +1005,7 @@ pub async fn poll_events_univ2_mint(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -997,8 +1013,7 @@ pub async fn poll_events_univ2_mint(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
@@ -1015,7 +1030,7 @@ pub async fn poll_events_univ2_burn(
     // get latest block from db
     let last_block: BlockNumber = match diesel::sql_query(format!(
         "SELECT block_number FROM {} \
-                 WHERE pair = {} \
+                 WHERE pair_id = {} \
                  ORDER BY block_number DESC;",
         table_name, pair_id
     ))
@@ -1081,7 +1096,7 @@ pub async fn poll_events_univ2_burn(
                                stamp,\
                                block_number,\
                                tx_hash,
-                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$2);",
+                               log_index) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);",
             table_name
         ))
         .bind::<BigInt, _>(pair_id)
@@ -1097,7 +1112,7 @@ pub async fn poll_events_univ2_burn(
         .execute(&pool.get().context("execute sql query")?);
 
         #[cfg(target_os = "macos")]
-        if i == 2 {
+        if i == 100 {
             return Ok(());
         }
 
@@ -1105,8 +1120,7 @@ pub async fn poll_events_univ2_burn(
             // ignore if already processed, panic otherwise
             Ok(_) => continue,
             Err(DatabaseError(UniqueViolation, _)) => continue,
-            Err(e) => Error::new(e)
-                .context(format!("write to db: {:#?}", &event)),
+            Err(e) => bail!(e)
         };
     }
     Ok(())
