@@ -1,4 +1,8 @@
 use std::error::Error;
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use tokio::sync::mpsc;
 
 use web3::{
     self,
@@ -27,7 +31,7 @@ async fn retrieve_token<T: Transport>(contract: &Contract<T>, property: &str) ->
         .query(property, (), None, Options::default(), None).await
 }
 
-pub async fn get_pool_reserves<'a>(
+pub async fn get_pool_reserves(
     pool_address: &str,
     web3: Web3Instance,
 ) -> Result<PoolStats, Box<dyn Error>> {
@@ -57,6 +61,11 @@ pub async fn get_pool_reserves<'a>(
     Ok(pool_stats)
 }
 
+#[async_trait]
+trait ReservesHolder {
+    async fn get_pool_reserves(&'static self) -> Result<Vec<PoolStats>, Box<dyn Error>>;
+}
+
 pub enum DEXName {
     Uniswap,
     Spirit,
@@ -67,10 +76,12 @@ pub enum DEXName {
     Serum
 }
 
+
 pub struct DEXPool<'a> {
     pub address: &'a str,
     pub pair: &'a str,
 }
+
 
 pub struct DEXPools<'a> {
     pub chain_id: ChainID,
@@ -78,9 +89,45 @@ pub struct DEXPools<'a> {
     pub name: DEXName,
 }
 
+#[async_trait]
+impl<'a> ReservesHolder for DEXPools<'a> {
+    async fn get_pool_reserves(&'static self) -> Result<Vec<PoolStats>, Box<dyn Error>> {
+        let n = self.pools.len();
+        let (tx, mut rx) = mpsc::channel(n);
+
+        for pool in &self.pools {
+            let mut tx = tx.clone();
+
+            tokio::spawn(async move {
+                // tx.send("sending from first handle").await;
+                let x_reserves = get_pool_reserves(pool.address.clone(), self.chain_id.web3_rpc()).await.unwrap();
+                tx.send(x_reserves).await.unwrap();
+            });
+        }
+
+        let mut reserves = vec![];
+
+        for _ in 0..n {
+            let x_reserves = rx.recv().await.unwrap();
+            reserves.push(x_reserves)
+        }
+
+        Ok(reserves)
+    }
+}
 
 pub mod list {
     use super::*;
+
+    pub fn total_dex<'a>() -> Vec<DEXPools<'a>> {
+        vec![
+            self::uniswap(),
+            self::sushiswap(),
+            self::spookyswap(),
+            self::spirit(),
+            self::pancake(),
+        ]
+    }
 
     pub fn uniswap() -> DEXPools<'static> {
         DEXPools {
@@ -221,9 +268,13 @@ pub mod tests {
 
     type WrappedResult<T> = Result<T, Box<dyn Error>>;
 
+    fn new_runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Runtime::new().unwrap()
+    }
+
     #[test]
     fn test_pool_reserves_retrieval() -> WrappedResult<()> {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let mut rt = self::new_runtime();
         rt.block_on(async {
             let pancake_pool = list::pancake();
             let first_pool = &pancake_pool.pools[0];
@@ -236,4 +287,31 @@ pub mod tests {
             Ok(())
         })
     }
+
+    // #[test]
+    // fn test_all_pool_reserves_retrieval() -> WrappedResult<()> {
+    //     let mut rt = self::new_runtime();
+    //     rt.block_on(async {
+    //         // let pancake_pool = list::pancake();
+    //         // let first_pool = &pancake_pool.pools[0];
+    //         // let pool_reserves = get_pool_reserves(first_pool.address, pancake_pool.chain_id.web3_rpc()).await?;
+    //         let mut all_pools_reserves: Vec<PoolStats> = vec![];
+    //         let all_dex = list::total_dex();
+
+    //         let mut pool_reserves: Vec<PoolStats>;
+    //         for dex in all_dex {
+    //             pool_reserves = dex.get_pool_reserves().await?;
+    //             // println!("pool reserves: {:?} \n", &pool_reserves);
+    //             // let pool_reserves = pool_reserves.iter().flatten().collect();
+    //             // let mut pool_reserves = &mut pool_reserves.clone();
+    //             // all_pools_reserves.append(pool_reserves);
+    //             all_pools_reserves.append(&mut pool_reserves);
+    //         }
+
+    //         println!("retrieved all pool reserves successfully");
+
+    //         panic!();
+    //         Ok(())
+    //     })
+    // }
 }
