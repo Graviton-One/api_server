@@ -1,7 +1,7 @@
-FROM rustlang/rust:nightly as builder
+FROM rustlang/rust:nightly-buster as builder
 
-RUN USER=root cargo new --bin keeper_extractor
-WORKDIR /keeper_extractor
+RUN USER=root cargo new --bin async_scheduler
+WORKDIR /async_scheduler
 
 # copy over your manifests
 COPY ./Cargo.toml ./Cargo.toml
@@ -11,7 +11,7 @@ RUN cargo build --release
 RUN rm src/*.rs
 
 # copy your source tree
-RUN rm ./target/release/deps/keeper_extractor*
+RUN rm ./target/release/deps/async_scheduler*
 COPY ./src ./src
 
 RUN cargo build --release
@@ -27,9 +27,8 @@ RUN apt-get update && \
         --no-install-recommends
 RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /keeper_extractor/target/release/keeper_extractor /keeper_extractor/keeper_extractor
-WORKDIR /keeper_extractor/
-EXPOSE 8088
+COPY --from=builder /async_scheduler/target/release/async_scheduler /async_scheduler/async_scheduler
+WORKDIR /async_scheduler/
 
-CMD ["/keeper_extractor/keeper_extractor"]
+CMD ["/async_scheduler/async_scheduler"]
 

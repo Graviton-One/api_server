@@ -10,7 +10,6 @@ use serde::{
 use diesel::sql_types::{
     Integer,
     Varchar,
-    Bigint,
     Numeric,
 };
 #[derive(Serialize,Deserialize,Debug,Clone)]
