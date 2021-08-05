@@ -1,12 +1,11 @@
 use diesel::r2d2;
 use tokio::time::{
-    delay_for, 
-      Duration
+        sleep,
+      Duration,
 };
 use std::sync::Arc;
 use bigdecimal::BigDecimal;
 use diesel_migrations::run_pending_migrations;
-use tokio_diesel::*;
 use std::str::FromStr;
 
 use web3::transports::Http;
@@ -19,10 +18,8 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
-use tokio::prelude::*;
 
 use crate::schema::pollers_data;
-use serde;
 use serde::{
     Serialize,
     Deserialize,
@@ -72,8 +69,7 @@ impl PollerState {
         diesel::update(pollers_data::table)
             .filter(pollers_data::poller_id.eq(id))
             .set(pollers_data::block_id.eq(num))
-            .execute_async(&conn)
-            .await
+            .execute(&conn.get().unwrap())
             .unwrap();
     }
 
@@ -84,8 +80,7 @@ impl PollerState {
         pollers_data::table
             .filter(pollers_data::poller_id.eq(id))
             .select(pollers_data::block_id)
-            .get_result_async::<i64>(&conn)
-            .await
+            .get_result::<i64>(&conn.get().unwrap())
             .unwrap()
     }
 }
@@ -257,7 +252,7 @@ impl KeeperExtractor {
                     self.pool.clone())
                 .await;
 
-            delay_for(Duration::from_secs((1) as u64)).await;
+            sleep(Duration::from_secs((1) as u64)).await;
         }
     }
 }

@@ -1241,6 +1241,7 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "actix_web_dev",
+ "async-trait",
  "bigdecimal",
  "chrono",
  "diesel",

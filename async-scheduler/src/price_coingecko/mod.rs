@@ -1,8 +1,3 @@
-use tokio::time::{
-    delay_for,
-    Duration
-};
-use tokio_diesel::*;
 use reqwest;
 use serde_json::Value;
 use std::sync::Arc;
@@ -36,8 +31,7 @@ impl CoingeckoPrice {
         let val = resp["market_data"]["current_price"]["usd"].as_f64().unwrap();
         diesel::sql_query("INSERT INTO gton_price (price) VALUES ($1)")
             .bind::<diesel::sql_types::Double,_>(val)
-            .execute_async(&self.pool)
-            .await
+            .execute(&self.pool.get().unwrap())
             .expect("exec err");
     }
 }

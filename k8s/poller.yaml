@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gton-poller
+  namespace: graviton-api
+  labels:
+    app: gton-poller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gton-poller
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: gton-poller
+    spec:
+      containers:
+        - name: gton-poller
+          image: 'docker.io/badconfig/async_scheduler:latest'
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: DATABASE_URL
+            - name: BALANCE_KEEPER_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: BALANCE_KEEPER_ADDRESS
+            - name: FARMER_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: FARMER_ADDRESS
+            - name: RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: RPC_URL
+            - name: FORUM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: FORUM_API_KEY
+          imagePullPolicy: Always
+      restartPolicy: Always
+

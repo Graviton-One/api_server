@@ -61,7 +61,7 @@ impl ForumExtractor {
                 .date();
             poll_forum_reports(&self.pool, &date, &self.forum_api_key).await;
 
-            tokio::time::delay_for(std::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         }
     }
 }
