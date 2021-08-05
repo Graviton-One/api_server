@@ -1,4 +1,5 @@
 // use tokio_cron_scheduler::{JobScheduler, JobToRun, Job};
+use anyhow::{Context, Result, Error};
 
 use async_scheduler::events_extractor::EventsExtractor;
 use async_scheduler::forum_extractor::ForumExtractor;
@@ -9,7 +10,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     // let mut sched = JobScheduler::new();
 
     let manager = ConnectionManager::<PgConnection>::new(
@@ -23,8 +24,7 @@ async fn main() {
     tokio::task::spawn(async move {
         EventsExtractor::new(p.clone()).run().await;
     })
-    .await
-    .unwrap();
+    .await?;
 
     // let p = pool.clone();
     // tokio::task::spawn(async move {
@@ -43,4 +43,5 @@ async fn main() {
     // });}).unwrap()).unwrap();
 
     // sched.start().await.unwrap();
+    Ok(())
 }

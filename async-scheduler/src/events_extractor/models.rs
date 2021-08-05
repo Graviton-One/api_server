@@ -16,7 +16,8 @@ pub struct Event {
 
 #[derive(Debug)]
 pub struct EventERC20Transfer {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub sender: String,
     pub receiver: String,
     pub amount: BigDecimal,
@@ -28,7 +29,8 @@ pub struct EventERC20Transfer {
 
 #[derive(Debug)]
 pub struct EventERC20Approval {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub owner: String,
     pub spender: String,
     pub amount: BigDecimal,
@@ -40,7 +42,8 @@ pub struct EventERC20Approval {
 
 #[derive(Debug)]
 pub struct EventAnyV4Swapin {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub account: String,
     pub amount: BigDecimal,
     pub transfer_tx_hash: String,
@@ -52,7 +55,8 @@ pub struct EventAnyV4Swapin {
 
 #[derive(Debug)]
 pub struct EventAnyV4Swapout {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub account: String,
     pub bindaddr: String,
     pub amount: BigDecimal,
@@ -64,7 +68,8 @@ pub struct EventAnyV4Swapout {
 
 #[derive(Debug)]
 pub struct EventUniV2PairCreated {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub address: String,
     pub token0: String,
     pub token1: String,
@@ -79,7 +84,8 @@ pub struct EventUniV2PairCreated {
 
 #[derive(Debug)]
 pub struct EventUniV2Swap {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub sender: String,
     pub receiver: String,
     pub amount0_in: BigDecimal,
@@ -94,7 +100,8 @@ pub struct EventUniV2Swap {
 
 #[derive(Debug)]
 pub struct EventUniV2Mint {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub sender: String,
     pub amount0: BigDecimal,
     pub amount1: BigDecimal,
@@ -106,7 +113,8 @@ pub struct EventUniV2Mint {
 
 #[derive(Debug)]
 pub struct EventUniV2Burn {
-    pub tx_origin: String,
+    pub tx_from: String,
+    pub tx_to: String,
     pub sender: String,
     pub receiver: String,
     pub amount0: BigDecimal,
@@ -122,7 +130,7 @@ pub struct UniV2Sell {
     pub swap_id: i64,
     pub pair_id: i64,
     pub pair_title: String,
-    pub tx_origin: String,
+    pub tx_from: String,
     pub amount_gton_in: BigDecimal,
     pub amount_token_out: BigDecimal,
     pub stamp: NaiveDateTime,
@@ -135,7 +143,7 @@ pub struct UniV2Buy {
     pub swap_id: i64,
     pub pair_id: i64,
     pub pair_title: String,
-    pub tx_origin: String,
+    pub tx_from: String,
     pub amount_token_in: BigDecimal,
     pub amount_gton_out: BigDecimal,
     pub stamp: NaiveDateTime,
@@ -148,10 +156,10 @@ pub struct UniV2LPAdd {
     pub mint_id: i64,
     pub pair_id: i64,
     pub pair_title: String,
-    pub tx_origin: String,
+    pub tx_from: String,
     pub amount_gton_in: BigDecimal,
     pub amount_token_in: BigDecimal,
-    pub amount_lp_out: BigDecimal,
+    pub amount_lp_out: Option<BigDecimal>,
     pub stamp: NaiveDateTime,
     pub tx_hash: String,
     pub log_index: i64,
@@ -162,10 +170,10 @@ pub struct UniV2LPRemove {
     pub burn_id: i64,
     pub pair_id: i64,
     pub pair_title: String,
-    pub tx_origin: String,
+    pub tx_from: String,
     pub amount_gton_out: BigDecimal,
     pub amount_token_out: BigDecimal,
-    pub amount_lp_in: BigDecimal,
+    pub amount_lp_in: Option<BigDecimal>,
     pub stamp: NaiveDateTime,
     pub tx_hash: String,
     pub log_index: i64,
