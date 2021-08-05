@@ -14,7 +14,6 @@ pub mod pollers;
 pub mod views;
 pub mod reports;
 use constants::C;
-use pollers::poll_events_anyv4_transfer;
 use pollers::*;
 use views::*;
 use reports::*;

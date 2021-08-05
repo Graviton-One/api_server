@@ -99,7 +99,7 @@ pub async fn poll_events_erc20_approval(
     println!("starting from block {:#?}", last_block);
 
     // get logs in batches of 5k blocks
-    // becasue binance rpc rate limits to 5k
+    // because binance rpc rate limits to 5k
     // because rpc breaks on getting 10k+ logs at once
     for x in (last_block..latest_block).step_by(block_step as usize) {
 
@@ -215,7 +215,7 @@ pub async fn poll_events_erc20_transfer(
     println!("starting from block {:#?}", last_block);
 
     // get logs in batches of 5k blocks
-    // becasue binance rpc rate limits to 5k
+    // because binance rpc rate limits to 5k
     // because rpc breaks on getting 10k+ logs at once
     for x in (last_block..latest_block).step_by(block_step as usize) {
 
@@ -328,7 +328,7 @@ pub async fn poll_events_anyv4_transfer(
     println!("starting from block {:#?}", last_block);
 
     // get logs in batches of 5k blocks
-    // becasue binance rpc rate limits to 5k
+    // because binance rpc rate limits to 5k
     // because rpc breaks on getting 10k+ logs at once
     for x in (last_block..latest_block).step_by(block_step as usize) {
 
