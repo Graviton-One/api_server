@@ -98,7 +98,8 @@ impl EventsExtractor {
         &self.poll_plg().await?;
         &self.poll_eth().await?;
         &self.poll_bsc().await?;
-        &self.build_reports().await?;
+        let result = self.build_reports().await;
+        match_error(result);
         Ok(())
     }
 
@@ -545,6 +546,10 @@ impl EventsExtractor {
         report_sell_amount_daily_other(&self.pool).await?;
         report_buy_amount_daily_eth(&self.pool).await?;
         report_buy_amount_daily_other(&self.pool).await?;
+        report_unique_buyers_eth(&self.pool).await?;
+        report_unique_buyers_other(&self.pool).await?;
+        report_unique_sellers_eth(&self.pool).await?;
+        report_unique_sellers_other(&self.pool).await?;
         Ok(())
     }
 }

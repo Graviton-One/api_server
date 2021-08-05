@@ -135,7 +135,7 @@ pub async fn poll_events_erc20_approval(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventERC20Approval {
                 tx_from,
@@ -250,7 +250,7 @@ pub async fn poll_events_erc20_transfer(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             // first transfer is contract creation and has no tx.to
             // insert empty string to avoid null
             let tx_to = match tx.to {
@@ -367,7 +367,7 @@ pub async fn poll_events_anyv4_transfer(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventERC20Transfer {
                 tx_from,
@@ -477,7 +477,7 @@ pub async fn poll_events_anyv4_swapin(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventAnyV4Swapin {
                 tx_from,
@@ -587,7 +587,7 @@ pub async fn poll_events_anyv4_swapout(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventAnyV4Swapout {
                 tx_from,
@@ -732,7 +732,7 @@ pub async fn poll_events_univ2_pair_created(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventUniV2PairCreated {
                 tx_from,
@@ -854,7 +854,7 @@ pub async fn poll_events_univ2_transfer(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventERC20Transfer {
                 tx_from,
@@ -976,7 +976,7 @@ pub async fn poll_events_univ2_swap(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventUniV2Swap {
                 tx_from,
@@ -1100,7 +1100,7 @@ pub async fn poll_events_univ2_mint(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventUniV2Mint {
                 tx_from,
@@ -1216,7 +1216,7 @@ pub async fn poll_events_univ2_burn(
                 .await
                 .context("get transaction from rpc")?
                 .context("transaction option")?;
-            let tx_from = hex_to_string(tx.from);
+            let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
             let event = EventUniV2Burn {
                 tx_from,
