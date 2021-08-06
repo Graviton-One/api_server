@@ -132,8 +132,8 @@ pub async fn view_buy(
     for (i, swap) in swaps.into_iter().enumerate() {
         let pair = diesel::sql_query(format!(
             "SELECT id, address, gtonToken0, title \
-         FROM {} \
-         WHERE id = $1;",
+             FROM {} \
+             WHERE id = $1;",
             pair_table
         ))
         .bind::<BigInt, _>(swap.pair_id)
@@ -234,8 +234,8 @@ pub async fn view_sell(
     for (i, swap) in swaps.into_iter().enumerate() {
         let pair = diesel::sql_query(format!(
             "SELECT id, address, gtonToken0, title \
-         FROM {} \
-         WHERE id=$1;",
+             FROM {} \
+             WHERE id=$1;",
             pair_table
         ))
         .bind::<BigInt, _>(swap.pair_id)
@@ -336,8 +336,8 @@ pub async fn view_lp_add(
     for (i, mint) in mints.into_iter().enumerate() {
         let pair = diesel::sql_query(format!(
             "SELECT id, address, gtonToken0, title \
-         FROM {} \
-         WHERE id=$1;",
+             FROM {} \
+             WHERE id=$1;",
             pair_table
         ))
         .bind::<BigInt, _>(mint.pair_id)
