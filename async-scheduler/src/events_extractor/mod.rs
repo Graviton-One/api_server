@@ -242,24 +242,6 @@ impl EventsExtractor {
             2000,
             latest_block,
         ).await;
-        println!("Polling plg Sushi");
-        &self.poll_univ2(
-            &self.plg_web3,
-            C.plg_gton,
-            C.plg_sushi_factory,
-            "events_univ2_pair_created_plg_sushi",
-            "events_univ2_transfer_plg_sushi",
-            "events_univ2_swap_plg_sushi",
-            "events_univ2_mint_plg_sushi",
-            "events_univ2_burn_plg_sushi",
-            "univ2_buy_plg_sushi",
-            "univ2_sell_plg_sushi",
-            "univ2_lp_add_plg_sushi",
-            "univ2_lp_remove_plg_sushi",
-            C.gton_deploy_plg,
-            100000,
-            latest_block,
-        ).await;
         println!("Polling Quick");
         &self.poll_univ2(
             &self.plg_web3,
