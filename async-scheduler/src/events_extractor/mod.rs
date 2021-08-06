@@ -93,10 +93,10 @@ impl EventsExtractor {
     }
 
     pub async fn run(&self) -> Result<()> {
-        &self.poll_ftm().await?;
-        &self.poll_plg().await?;
-        &self.poll_eth().await?;
-        &self.poll_bsc().await?;
+        match_error(self.poll_ftm().await);
+        match_error(self.poll_plg().await);
+        match_error(self.poll_eth().await);
+        match_error(self.poll_bsc().await);
         let result = self.build_reports().await;
         match_error(result);
         Ok(())
@@ -343,6 +343,14 @@ impl EventsExtractor {
         block_step: u64,
         latest_block: u64,
     ) -> Result<()> {
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            events_erc20_transfer_table, default_from_block
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
         let result = poll_events_erc20_transfer(
             &self.pool,
             events_erc20_transfer_table,
@@ -354,6 +362,13 @@ impl EventsExtractor {
         )
         .await;
         match_error(result);
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            events_erc20_approval_table, default_from_block
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
 
         let result = poll_events_erc20_approval(
             &self.pool,
@@ -381,6 +396,13 @@ impl EventsExtractor {
         latest_block: u64,
     ) -> Result<()> {
 
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            events_anyv4_swapin_table, default_from_block
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
         let result = poll_events_anyv4_swapin(
             &self.pool,
             events_anyv4_swapin_table,
@@ -392,6 +414,13 @@ impl EventsExtractor {
         )
         .await;
         match_error(result);
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            events_anyv4_swapout_table, default_from_block
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
 
         let result = poll_events_anyv4_swapout(
             &self.pool,
@@ -425,6 +454,14 @@ impl EventsExtractor {
         block_step: u64,
         latest_block: u64,
     ) -> Result<()> {
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            events_univ2_pair_created_table, default_from_block
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
         let result = poll_events_univ2_pair_created(
             &self.pool,
             events_univ2_pair_created_table,
@@ -447,6 +484,14 @@ impl EventsExtractor {
 
         for pair in pairs {
             println!("caching {}", pair.title);
+
+            diesel::sql_query(format!(
+                "INSERT INTO blocks(name_table, block_number) VALUES ('{}-{}',{}) \
+                  ON CONFLICT DO NOTHING",
+                events_univ2_transfer_table, pair.id, default_from_block
+            ))
+                .execute(&self.pool.get().context("execute sql query")?);
+
             let result = poll_events_univ2_transfer(
                 &self.pool,
                 events_univ2_transfer_table,
@@ -459,6 +504,13 @@ impl EventsExtractor {
             )
             .await;
             match_error(result);
+
+            diesel::sql_query(format!(
+                "INSERT INTO blocks(name_table, block_number) VALUES ('{}-{}',{}) \
+                  ON CONFLICT DO NOTHING",
+                events_univ2_swap_table, pair.id, default_from_block
+            ))
+                .execute(&self.pool.get().context("execute sql query")?);
 
             let result = poll_events_univ2_swap(
                 &self.pool,
@@ -473,6 +525,13 @@ impl EventsExtractor {
             .await;
             match_error(result);
 
+            diesel::sql_query(format!(
+                "INSERT INTO blocks(name_table, block_number) VALUES ('{}-{}',{}) \
+                  ON CONFLICT DO NOTHING",
+                events_univ2_mint_table, pair.id, default_from_block
+            ))
+                .execute(&self.pool.get().context("execute sql query")?);
+
             let result = poll_events_univ2_mint(
                 &self.pool,
                 events_univ2_mint_table,
@@ -485,6 +544,13 @@ impl EventsExtractor {
             )
             .await;
             match_error(result);
+
+            diesel::sql_query(format!(
+                "INSERT INTO blocks(name_table, block_number) VALUES ('{}-{}',{}) \
+                  ON CONFLICT DO NOTHING",
+                events_univ2_burn_table, pair.id, default_from_block
+            ))
+                .execute(&self.pool.get().context("execute sql query")?);
 
             let result = poll_events_univ2_burn(
                 &self.pool,

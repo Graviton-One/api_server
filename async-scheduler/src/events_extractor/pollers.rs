@@ -85,7 +85,7 @@ pub async fn poll_events_erc20_approval(
     println!("polling events erc20 approval");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} ORDER BY block_number DESC;",
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
         table_name
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from approval table")?)
@@ -117,8 +117,8 @@ pub async fn poll_events_erc20_approval(
 
         for (i, e) in logs.into_iter().enumerate() {
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, table_name, 100) { return Ok(()) }
+            #[cfg(target_os = "macos")]
+            if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let owner: String = hex_to_string(Address::from(e.topics[1]));
             let spender: String = hex_to_string(Address::from(e.topics[2]));
@@ -180,12 +180,13 @@ pub async fn poll_events_erc20_approval(
             };
         }
 
-       // let never = async_std::future::pending::<()>();
-       // let dur = std::time::Duration::from_millis(500);
-       // async_std::future::timeout(dur, never).await;
-        // println!("waiting");
-        // tokio::time::delay_for(std::time::Duration::from_millis(5000)).await;
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
+
     Ok(())
 }
 
@@ -201,7 +202,7 @@ pub async fn poll_events_erc20_transfer(
     println!("polling events erc20 transfer");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} ORDER BY block_number DESC;",
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
         table_name
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from erc20 transfer table")?)
@@ -298,6 +299,11 @@ pub async fn poll_events_erc20_transfer(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -314,7 +320,7 @@ pub async fn poll_events_anyv4_transfer(
     println!("polling events anyv4 transfer");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} ORDER BY block_number DESC;",
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
         table_name
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -411,6 +417,11 @@ pub async fn poll_events_anyv4_transfer(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -427,7 +438,7 @@ pub async fn poll_events_anyv4_swapin(
     println!("polling events anyv4 swapin");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} ORDER BY block_number DESC;",
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
         table_name
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -521,6 +532,11 @@ pub async fn poll_events_anyv4_swapin(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -537,7 +553,7 @@ pub async fn poll_events_anyv4_swapout(
     println!("polling events anyv4 swapout");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} ORDER BY block_number DESC;",
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
         table_name
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -631,6 +647,11 @@ pub async fn poll_events_anyv4_swapout(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -659,7 +680,7 @@ pub async fn poll_events_univ2_pair_created(
     println!("polling events univ2 pair created");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} ORDER BY block_number DESC;",
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
         table_name
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -785,6 +806,11 @@ pub async fn poll_events_univ2_pair_created(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -802,9 +828,8 @@ pub async fn poll_events_univ2_transfer(
     println!("polling events lp transfer");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} \
-         WHERE pair_id = {} \
-         ORDER BY block_number DESC;",
+        "SELECT block_number \
+         FROM blocks WHERE name_table='{}-{}';",
         table_name, pair_id
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -900,6 +925,11 @@ pub async fn poll_events_univ2_transfer(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -916,9 +946,8 @@ pub async fn poll_events_univ2_swap(
     println!("polling events univ2 swap");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} \
-                 WHERE pair_id = {} \
-                 ORDER BY block_number DESC;",
+        "SELECT block_number \
+         FROM blocks WHERE name_table='{}-{}';",
         table_name, pair_id
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -1031,6 +1060,11 @@ pub async fn poll_events_univ2_swap(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1048,9 +1082,8 @@ pub async fn poll_events_univ2_mint(
     println!("polling events univ2 mint");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} \
-                 WHERE pair_id = {} \
-                 ORDER BY block_number DESC;",
+        "SELECT block_number \
+         FROM blocks WHERE name_table='{}-{}';",
         table_name, pair_id
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -1146,6 +1179,11 @@ pub async fn poll_events_univ2_mint(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1163,9 +1201,8 @@ pub async fn poll_events_univ2_burn(
     println!("polling events univ2 burn");
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
-        "SELECT block_number FROM {} \
-                 WHERE pair_id = {} \
-                 ORDER BY block_number DESC;",
+        "SELECT block_number \
+         FROM blocks WHERE name_table='{}-{}';",
         table_name, pair_id
     ))
     .get_result::<LastBlock>(&pool.get().context("get last block from table")?)
@@ -1266,6 +1303,11 @@ pub async fn poll_events_univ2_burn(
                 Err(e) => bail!(e)
             };
         }
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
