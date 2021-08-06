@@ -257,7 +257,7 @@ impl EventsExtractor {
             "univ2_lp_add_plg_quick",
             "univ2_lp_remove_plg_quick",
             C.gton_deploy_plg,
-            100000,
+            2000,
             latest_block,
         ).await;
         Ok(())
