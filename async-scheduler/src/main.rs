@@ -22,30 +22,27 @@ async fn main() {
 
     let p = pool.clone();
     tokio::task::spawn(async move {
-        UsersExtractor::new(p.clone()).run().await;
+        KeeperExtractor::new(p.clone()).run().await;
     });
 
-    // let p = pool.clone();
-    // tokio::task::spawn(async move {
-    //     EventsExtractor::new(p.clone()).run().await;
-    // });
-
-    // let p = pool.clone();
-    // tokio::task::spawn(async move {
-    //     KeeperExtractor::new(p.clone()).run().await;
-    // });
-
-
-    // sched.add(Job::new("0 0 * * * *", move |_,_| {
-    //      let p = pool.clone();
-    //      tokio::task::spawn(async move {
-    //          CoingeckoPrice::new(p).run().await;
-    //      });
-    //      let p = pool.clone();
-    //      tokio::task::spawn(async move {
-    //         ForumExtractor::new(p).run().await;
-    //      });
-    // }).unwrap()).unwrap();
+    sched.add(Job::new("0 0 * * * *", move |_,_| {
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+             CoingeckoPrice::new(p).run().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+            ForumExtractor::new(p).run().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+             EventsExtractor::new(p.clone()).run().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+             UsersExtractor::new(p.clone()).run().await;
+         });
+    }).unwrap()).unwrap();
 
     sched.start().await.unwrap();
 }
