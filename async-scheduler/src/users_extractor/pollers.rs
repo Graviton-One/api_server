@@ -81,7 +81,7 @@ pub async fn poll_events_balance_keeper_open_user(
 ) -> Result<()> {
     println!("polling events open user");
     let table_name = "events_balance_keeper_open_user";
-    let block_step = 2000;
+    let block_step = 100000;
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
         "SELECT block_number FROM blocks WHERE name_table='{}';",
@@ -112,9 +112,6 @@ pub async fn poll_events_balance_keeper_open_user(
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
         for (i, e) in logs.into_iter().enumerate() {
-
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let opener: String = hex_to_string(Address::from(e.topics[1]));
             let user_id: BigDecimal =
@@ -209,7 +206,7 @@ pub async fn poll_events_balance_keeper_add(
 ) -> Result<()> {
     println!("polling events add to user");
     let table_name = "events_balance_keeper_add";
-    let block_step = 2000;
+    let block_step = 100000;
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
         "SELECT block_number FROM blocks WHERE name_table='{}';",
@@ -241,8 +238,6 @@ pub async fn poll_events_balance_keeper_add(
 
         for (i, e) in logs.into_iter().enumerate() {
 
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let adder: String = hex_to_string(Address::from(e.topics[1]));
             let user_id: BigDecimal =
@@ -262,19 +257,6 @@ pub async fn poll_events_balance_keeper_add(
                 .context("transaction option")?;
             let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
-
-            // get user address from the contract
-            let contract = Contract::from_json(
-                web3.eth(),
-                C.balance_keeper.parse().unwrap(),
-                include_bytes!("abi/balance_keeper.json")
-            )
-                .expect("create balance keeper contract");
-            let (user_chain, user_address_bytes): (String, Vec<u8>) = contract
-                .query("userChainAddressById", (e.topics[2].into_uint()), None, Options::default(), None)
-                .await
-                .expect("get user chain address");
-            let user_address = hex_to_string(user_address_bytes);
 
             let event = BalanceKeeperAdd {
                 tx_from,
@@ -336,7 +318,7 @@ pub async fn poll_events_balance_keeper_subtract(
 ) -> Result<()> {
     println!("polling events subtract to user");
     let table_name = "events_balance_keeper_subtract";
-    let block_step = 2000;
+    let block_step = 10000;
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
         "SELECT block_number FROM blocks WHERE name_table='{}';",
@@ -363,13 +345,11 @@ pub async fn poll_events_balance_keeper_subtract(
             .topic_filter(topics)
             .build();
         let logs: Vec<web3::types::Log> =
-            web3.eth().logs(filter).await.context("get logs erc20 approval")?;
+            web3.eth().logs(filter).await.context("get logs lp subtract")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
         for (i, e) in logs.into_iter().enumerate() {
 
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let subtractor: String = hex_to_string(Address::from(e.topics[1]));
             let user_id: BigDecimal =
@@ -389,19 +369,6 @@ pub async fn poll_events_balance_keeper_subtract(
                 .context("transaction option")?;
             let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
-
-            // get user address from the contract
-            let contract = Contract::from_json(
-                web3.eth(),
-                C.balance_keeper.parse().unwrap(),
-                include_bytes!("abi/balance_keeper.json")
-            )
-                .expect("create balance keeper contract");
-            let (user_chain, user_address_bytes): (String, Vec<u8>) = contract
-                .query("userChainAddressById", (e.topics[2].into_uint()), None, Options::default(), None)
-                .await
-                .expect("get user chain address");
-            let user_address = hex_to_string(user_address_bytes);
 
             let event = BalanceKeeperSubtract {
                 tx_from,
@@ -463,7 +430,7 @@ pub async fn poll_events_lp_keeper_add(
 ) -> Result<()> {
     println!("polling events lp add");
     let table_name = "events_lp_keeper_add";
-    let block_step = 2000;
+    let block_step = 100000;
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
         "SELECT block_number FROM blocks WHERE name_table='{}';",
@@ -495,8 +462,6 @@ pub async fn poll_events_lp_keeper_add(
 
         for (i, e) in logs.into_iter().enumerate() {
 
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let adder: String = hex_to_string(Address::from(e.topics[1]));
             let token_id: BigDecimal =
@@ -518,19 +483,6 @@ pub async fn poll_events_lp_keeper_add(
                 .context("transaction option")?;
             let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
-
-            // get user address from the contract
-            let contract = Contract::from_json(
-                web3.eth(),
-                C.balance_keeper.parse().unwrap(),
-                include_bytes!("abi/balance_keeper.json")
-            )
-                .expect("create balance keeper contract");
-            let (user_chain, user_address_bytes): (String, Vec<u8>) = contract
-                .query("userChainAddressById", (e.topics[2].into_uint()), None, Options::default(), None)
-                .await
-                .expect("get user chain address");
-            let user_address = hex_to_string(user_address_bytes);
 
             let event = LPKeeperAdd {
                 tx_from,
@@ -595,7 +547,7 @@ pub async fn poll_events_lp_keeper_subtract(
 ) -> Result<()> {
     println!("polling events lp subtract");
     let table_name = "events_lp_keeper_subtract";
-    let block_step = 2000;
+    let block_step = 100000;
     // get latest block from db
     let last_block = match diesel::sql_query(format!(
         "SELECT block_number FROM blocks WHERE name_table='{}';",
@@ -618,7 +570,7 @@ pub async fn poll_events_lp_keeper_subtract(
         let filter = FilterBuilder::default()
             .from_block(BlockNumber::Number(x.into()))
             .to_block(BlockNumber::Number((x + block_step - 1).into()))
-            .address(vec![C.balance_keeper.parse().unwrap()])
+            .address(vec![C.lp_keeper.parse().unwrap()])
             .topic_filter(topics)
             .build();
         let logs: Vec<web3::types::Log> =
@@ -627,8 +579,6 @@ pub async fn poll_events_lp_keeper_subtract(
 
         for (i, e) in logs.into_iter().enumerate() {
 
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let subtractor: String = hex_to_string(Address::from(e.topics[1]));
             let token_id: BigDecimal =
@@ -650,19 +600,6 @@ pub async fn poll_events_lp_keeper_subtract(
                 .context("transaction option")?;
             let tx_from = hex_to_string(tx.from.unwrap());
             let tx_to = hex_to_string(tx.to.context("tx_to option")?);
-
-            // get user address from the contract
-            let contract = Contract::from_json(
-                web3.eth(),
-                C.balance_keeper.parse().unwrap(),
-                include_bytes!("abi/balance_keeper.json")
-            )
-                .expect("create balance keeper contract");
-            let (user_chain, user_address_bytes): (String, Vec<u8>) = contract
-                .query("userChainAddressById", (e.topics[2].into_uint()), None, Options::default(), None)
-                .await
-                .expect("get user chain address");
-            let user_address = hex_to_string(user_address_bytes);
 
             let event = LPKeeperSubtract {
                 tx_from,

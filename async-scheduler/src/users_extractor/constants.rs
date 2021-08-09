@@ -97,6 +97,6 @@ pub static C: Constants = Constants {
     topic0_set_is_allowed_token: "0x28e2bc4df2fbb2719002ab1b99e1fcffe8be886652c8f563fcbe8ff38d2de5d3",
     topic0_set_lock_limit: "0xd0ea9b960a754ff500179f96481ffd92bc90e886f2d893d17c7affdb180db646",
     balance_keeper_deploy: 11332355,
-    lp_keeper_deploy: 12467829,
+    lp_keeper_deploy: 11332621,
 };
 
