@@ -57,7 +57,61 @@ impl UsersExtractor {
             .context("fetch block")?
             .context("block option")?;
         let latest_block = block.number.context("block number option")?.as_u64();
-        match_error(poll_events_open_user(&self.pool, &self.ftm_web3, latest_block).await);
+
+        match_error(self.poll_balance_keeper(latest_block).await);
+        match_error(self.poll_lp_keeper(latest_block).await);
+        Ok(())
+    }
+
+    async fn poll_balance_keeper (&self, latest_block: u64) -> Result<()> {
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            "events_balance_keeper_open_user", C.balance_keeper_deploy
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
+        match_error(poll_events_balance_keeper_open_user(&self.pool, &self.ftm_web3, latest_block).await);
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            "events_balance_keeper_add", C.balance_keeper_deploy
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
+        match_error(poll_events_balance_keeper_add(&self.pool, &self.ftm_web3, latest_block).await);
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            "events_balance_keeper_subtract", C.balance_keeper_deploy
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
+        match_error(poll_events_balance_keeper_subtract(&self.pool, &self.ftm_web3, latest_block).await);
+        Ok(())
+    }
+
+    async fn poll_lp_keeper(&self, latest_block: u64) -> Result<()> {
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            "events_lp_keeper_add", C.lp_keeper_deploy
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
+        match_error(poll_events_lp_keeper_add(&self.pool, &self.ftm_web3, latest_block).await);
+
+        diesel::sql_query(format!(
+            "INSERT INTO blocks(name_table, block_number) VALUES ('{}',{}) \
+             ON CONFLICT DO NOTHING",
+            "events_lp_keeper_subtract", C.lp_keeper_deploy
+        ))
+            .execute(&self.pool.get().context("execute sql query")?);
+
+        match_error(poll_events_lp_keeper_subtract(&self.pool, &self.ftm_web3, latest_block).await);
         Ok(())
     }
 }
