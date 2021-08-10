@@ -926,8 +926,8 @@ pub async fn poll_events_univ2_transfer(
             };
         }
         diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
         ))
             .execute(&pool.get().context("execute sql query")?);
     }
@@ -1061,8 +1061,8 @@ pub async fn poll_events_univ2_swap(
             };
         }
         diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
         ))
             .execute(&pool.get().context("execute sql query")?);
     }
@@ -1180,8 +1180,8 @@ pub async fn poll_events_univ2_mint(
             };
         }
         diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
         ))
             .execute(&pool.get().context("execute sql query")?);
     }
@@ -1304,8 +1304,8 @@ pub async fn poll_events_univ2_burn(
             };
         }
         diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
         ))
             .execute(&pool.get().context("execute sql query")?);
     }
