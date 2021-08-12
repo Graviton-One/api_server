@@ -31,7 +31,7 @@ pub async fn report_buy_amount_daily_eth(
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_buy_ftm_amount_daily_eth AS \
+       "CREATE TABLE univ2_buy_amount_daily_eth AS \
         SELECT stamp::date, sum(\"amount_gton_out\") \
         FROM univ2_buy_eth_sushi \
         GROUP BY 1 ORDER BY 1 ASC;"
@@ -48,7 +48,7 @@ pub async fn report_sell_amount_daily_other(
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_sell_ftm_amount_daily_other AS \
+       "CREATE TABLE univ2_sell_amount_daily_other AS \
         SELECT stamp::date, sum(\"amount_gton_in\") \
         FROM univ2_sell_ftm_spirit \
             NATURAL FULL OUTER JOIN univ2_sell_ftm_spooky
@@ -69,7 +69,7 @@ pub async fn report_sell_amount_daily_eth(
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_sell_ftm_amount_daily_eth AS \
+       "CREATE TABLE univ2_sell_amount_daily_eth AS \
         SELECT stamp::date, sum(\"amount_gton_in\") \
         FROM univ2_sell_eth_sushi \
         GROUP BY 1 ORDER BY 1 ASC;"
@@ -145,7 +145,7 @@ pub async fn report_unique_sellers_eth(pool: &DbPool) -> Result<()> {
 pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
 
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_buyers_running_count_eth"
+       "DROP TABLE IF EXISTS univ2_buyers_running_count_other"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(

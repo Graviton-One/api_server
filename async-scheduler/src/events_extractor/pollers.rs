@@ -128,6 +128,7 @@ pub async fn poll_events_erc20_approval(
             let stamp = fetch_stamp(&web3, e.block_number.context("block number option")?).await?;
             let tx_hash = hex_to_string(e.transaction_hash.context("transaction hash option")?);
             let log_index = i64::try_from(e.log_index.context("log index option")?.as_u64()).context("log index to u64")?;
+
             // get transaction origin
             let tx = &web3
                 .eth()
@@ -174,17 +175,17 @@ pub async fn poll_events_erc20_approval(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
-        }
 
         diesel::sql_query(format!(
             "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
+            block_number, table_name
         ))
             .execute(&pool.get().context("execute sql query")?);
+        }
     }
 
     Ok(())
@@ -294,16 +295,17 @@ pub async fn poll_events_erc20_transfer(
             .bind::<BigInt, _>(&event.log_index)
             .execute(&pool.get().context("execute sql query")?);
             match result {
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+                block_number, table_name
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -412,16 +414,17 @@ pub async fn poll_events_anyv4_transfer(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+                block_number, table_name
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -527,16 +530,17 @@ pub async fn poll_events_anyv4_swapin(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+                block_number, table_name
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -642,16 +646,17 @@ pub async fn poll_events_anyv4_swapout(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+                block_number, table_name
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -801,16 +806,17 @@ pub async fn poll_events_univ2_pair_created(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+                block_number, table_name
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -920,16 +926,17 @@ pub async fn poll_events_univ2_transfer(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+                block_number, table_name, pair_id
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1055,16 +1062,17 @@ pub async fn poll_events_univ2_swap(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+                block_number, table_name, pair_id
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1174,16 +1182,17 @@ pub async fn poll_events_univ2_mint(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+                block_number, table_name, pair_id
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1298,16 +1307,17 @@ pub async fn poll_events_univ2_burn(
 
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e)
             };
+
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+                block_number, table_name, pair_id
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
