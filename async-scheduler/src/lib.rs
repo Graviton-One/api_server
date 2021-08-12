@@ -4,6 +4,7 @@ extern crate diesel;
 extern crate anyhow;
 
 pub mod events_extractor;
+pub mod users_extractor;
 pub mod forum_extractor;
 pub mod keeper_extractor;
 pub mod price_coingecko;

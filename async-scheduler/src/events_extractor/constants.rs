@@ -20,13 +20,17 @@ pub struct Constants {
     pub topic0_univ2_pair_created: &'static str,
     pub topic0_univ2_swap: &'static str,
     pub zero_address: &'static str,
+    pub gton_deploy_ftm: u64,
+    pub gton_deploy_eth: u64,
+    pub gton_deploy_plg: u64,
+    pub gton_deploy_bsc: u64,
 }
 
 pub static C: Constants = Constants {
     ftm_gton: "0xc1be9a4d5d45beeacae296a7bd5fadbfc14602c4",
     eth_gton: "0x01e0E2e61f554eCAaeC0cC933E739Ad90f24a86d",
     plg_gton: "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
-    bsc_gton: "0x64D5BaF5ac030e2b7c435aDD967f787ae94D0205",
+    bsc_gton: "0x64d5baf5ac030e2b7c435add967f787ae94d0205",
     eth_sushi_factory: "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac",
     plg_sushi_factory: "0xc35dadb65012ec5796536bd9864ed8773abc74c4",
     plg_quick_factory: "0x5757371414417b8c6caad45baef941abc7d3ab32",
@@ -44,4 +48,8 @@ pub static C: Constants = Constants {
     topic0_univ2_mint: "0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f",
     topic0_univ2_burn: "0xdccd412f0b1252819cb1fd330b93224ca42612892bb3f4f789976e6d81936496",
     zero_address: "0x0000000000000000000000000000000000000000",
+    gton_deploy_ftm: 5410300,
+    gton_deploy_eth: 12316923,
+    gton_deploy_plg: 15020139,
+    gton_deploy_bsc: 7182255,
 };
