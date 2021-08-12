@@ -741,7 +741,7 @@ pub async fn poll_events_univ2_pair_created(
             let mut address_bytes: [u8; 20] = [0; 20];
             address_bytes.copy_from_slice(&e.data.0[12..32]);
             let address = hex_to_string(Address::from(&address_bytes));
-            let gtonToken0: bool = token0 == token;
+            let gtonToken0: bool = token0 == token.to_lowercase();
             let title0 = get_token_name(&web3, Address::from(e.topics[1])).await;
             let title1 = get_token_name(&web3, Address::from(e.topics[2])).await;
             let title = title0 + "-" + &title1;
