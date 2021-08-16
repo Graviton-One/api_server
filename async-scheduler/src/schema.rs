@@ -68,6 +68,7 @@ table! {
 table! {
     chains (id) {
         id -> Int4,
+        coingecko_id -> Varchar,
         chain_name -> Varchar,
         chain_icon -> Varchar,
         chain_short -> Varchar,

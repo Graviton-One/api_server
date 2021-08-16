@@ -7,6 +7,7 @@ pub mod events_extractor;
 pub mod forum_extractor;
 pub mod keeper_extractor;
 pub mod price_coingecko;
+pub mod reserves_poller;
 pub mod schema;
 
 use diesel::r2d2::{ConnectionManager, Pool};

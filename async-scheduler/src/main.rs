@@ -22,7 +22,7 @@ async fn main() {
     let p = pool.clone();
     tokio::task::spawn(async move {
         EventsExtractor::new(p.clone()).run().await;
-    })
+    });
 
     let p = pool.clone();
     tokio::task::spawn(async move {
