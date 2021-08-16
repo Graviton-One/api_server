@@ -75,7 +75,7 @@ insert into pools values (pool_address, name, swap_link, pair_link, gton_reserve
 insert into chains (chain_name, chain_icon, chain_short, network_id, explorer, node_url, token, gton_address, coingecko_id)
     values ("Polygon", "/", "MATIC", 1, "https://polygonscan.com/", "https://rpc-mainnet.maticvigil.com/", "MATIC", "0xf480f38c366daac4305dc484b2ad7a496ff00cea", "polygon-pos");
 
-insert into dexes (chain_id, name) values (5, "Quickswap")
+insert into dexes (chain_id, name) values (5, "Quickswap");
 
 insert into pools values (pool_address, name, swap_link, pair_link, gton_reserves, tvl, dex_id)
         values ("0x7d49d50c886882220c428afbe60408904c72e2df", "GTON_MATIC", "", "", 0, 0, 5);
