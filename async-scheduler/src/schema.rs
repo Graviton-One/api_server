@@ -67,7 +67,7 @@ table! {
 }
 table! {
     chains (id) {
-        id -> Int4,
+        id -> BigInt,
         coingecko_id -> Varchar,
         chain_name -> Varchar,
         chain_icon -> Varchar,
@@ -81,15 +81,15 @@ table! {
 }
 table! {
     dexes (id) {
-        id -> Int4,
-        chain_id -> Int4,
+        id -> BigInt,
+        chain_id -> BigInt,
         name -> Varchar,
     }
 }
 table! {
     pools (id) {
-        id -> Int4,
-        dex_id -> Int4,
+        id -> BigInt,
+        dex_id -> BigInt,
         name -> Varchar,
         pool_address -> Varchar,
         swap_link -> Varchar,
