@@ -117,7 +117,7 @@ pub async fn view_buy(
     #[cfg(target_os = "macos")]
     if debug_limit(pool, buy_table, 10) { return Ok(()) }
 
-    // from last block in the report table, get swap table,
+    // from last block in the view table, get swap table,
     let swaps: Vec<Swap> = diesel::sql_query(format!(
         "SELECT id, pair_id, tx_from, tx_to, amount0_in, amount1_in, \
          amount0_out, amount1_out, stamp, block_number, tx_hash, log_index \
