@@ -60,17 +60,17 @@ pub struct EventsExtractor {
 impl EventsExtractor {
     pub fn new(pool: DbPool) -> Self {
         let ftm_web3 =
-            web3::Web3::new(Http::new("https://rpc.ftm.tools").expect("err creating web3 ftm"));
+            web3::Web3::new(Http::new("https://target.nodes.gravityhub.org/ftm").expect("err creating web3 ftm"));
         let eth_rpc: String =
             std::env::var("ETH_RPC").unwrap_or("https://mainnet.infura.io/v3/77f1c5201f43496fb13f1855b97da1dc".to_string());
         let eth_web3 =
             web3::Web3::new(Http::new(&eth_rpc).expect("err creating web3 eth"));
         let bsc_rpc: String =
-            std::env::var("BSC_RPC").unwrap_or("https://bsc-dataseed.binance.org/".to_string());
+            std::env::var("BSC_RPC").unwrap_or("https://target.nodes.gravityhub.org/bsc".to_string());
         let bsc_web3 =
             web3::Web3::new(Http::new(&bsc_rpc).expect("err creating web3 ftm"));
         let plg_rpc: String =
-            std::env::var("PLG_RPC").unwrap_or("https://matic-mainnet.chainstacklabs.com".to_string());
+            std::env::var("PLG_RPC").unwrap_or("https://target.nodes.gravityhub.org/polygon".to_string());
         let plg_web3 =
             web3::Web3::new(Http::new(&plg_rpc).expect("err creating web3 ftm"));
         // let ava_web3 =
@@ -182,7 +182,7 @@ impl EventsExtractor {
             "events_erc20_approval_bsc",
             "events_erc20_transfer_bsc",
             C.gton_deploy_bsc,
-            2000,
+            500,
             latest_block,
         ).await;
        
@@ -192,7 +192,7 @@ impl EventsExtractor {
             "events_anyv4_swapin_bsc",
             "events_anyv4_swapout_bsc",
             C.gton_deploy_bsc,
-            2000,
+            500,
             latest_block,
         ).await;
         println!("Polling Pancake");
@@ -210,7 +210,7 @@ impl EventsExtractor {
             "univ2_lp_add_bsc_pancake",
             "univ2_lp_remove_bsc_pancake",
             C.gton_deploy_bsc,
-            2000,
+            500,
             latest_block,
         ).await;
         Ok(())
