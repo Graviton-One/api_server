@@ -5,6 +5,7 @@ use diesel::prelude::*;
 pub async fn report_buy_amount_daily_other(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_buy_amount_daily_other");
 
     diesel::sql_query(
        "DELETE FROM univ2_buy_amount_daily_other"
@@ -16,7 +17,6 @@ pub async fn report_buy_amount_daily_other(
         FROM univ2_buy_ftm_spirit \
             NATURAL FULL OUTER JOIN univ2_buy_ftm_spooky
             NATURAL FULL OUTER JOIN univ2_buy_bsc_pancake
-            NATURAL FULL OUTER JOIN univ2_buy_plg_sushi
             NATURAL FULL OUTER JOIN univ2_buy_plg_quick
         GROUP BY 1 ORDER BY 1 ASC;"
     )
@@ -27,6 +27,8 @@ pub async fn report_buy_amount_daily_other(
 pub async fn report_buy_amount_daily_eth(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_buy_amount_daily_eth");
+
     diesel::sql_query(
        "DELETE FROM univ2_buy_amount_daily_eth"
     )
@@ -44,6 +46,8 @@ pub async fn report_buy_amount_daily_eth(
 pub async fn report_sell_amount_daily_other(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_sell_amount_daily_other");
+
     diesel::sql_query(
        "DELETE FROM univ2_sell_amount_daily_other"
     )
@@ -54,7 +58,6 @@ pub async fn report_sell_amount_daily_other(
         FROM univ2_sell_ftm_spirit \
             NATURAL FULL OUTER JOIN univ2_sell_ftm_spooky
             NATURAL FULL OUTER JOIN univ2_sell_bsc_pancake
-            NATURAL FULL OUTER JOIN univ2_sell_plg_sushi
             NATURAL FULL OUTER JOIN univ2_sell_plg_quick
         GROUP BY 1 ORDER BY 1 ASC;"
     )
@@ -65,6 +68,8 @@ pub async fn report_sell_amount_daily_other(
 pub async fn report_sell_amount_daily_eth(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_sell_amount_daily_eth");
+
     diesel::sql_query(
        "DELETE FROM univ2_sell_amount_daily_eth"
     )
@@ -80,6 +85,7 @@ pub async fn report_sell_amount_daily_eth(
 }
 
 pub async fn report_unique_buyers_eth(pool: &DbPool) -> Result<()> {
+    println!("report_unique_buyers_eth");
 
     diesel::sql_query(
        "DELETE FROM univ2_buyers_running_count_eth"
@@ -112,6 +118,7 @@ pub async fn report_unique_buyers_eth(pool: &DbPool) -> Result<()> {
 }
 
 pub async fn report_unique_sellers_eth(pool: &DbPool) -> Result<()> {
+    println!("report_unique_sellers_eth");
 
     diesel::sql_query(
        "DELETE FROM univ2_sellers_running_count_eth"
@@ -144,6 +151,7 @@ pub async fn report_unique_sellers_eth(pool: &DbPool) -> Result<()> {
 }
 
 pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
+    println!("report_unique_buyers_other");
 
     diesel::sql_query(
        "DELETE FROM univ2_buyers_running_count_other"
@@ -159,7 +167,6 @@ pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_buy_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_buy_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_buy_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_buy_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_buy_plg_quick)
                         AS events
               WHERE
@@ -173,7 +180,6 @@ pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_buy_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_buy_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_buy_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_buy_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_buy_plg_quick)
                         AS events
             ) as b
@@ -185,6 +191,7 @@ pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
 }
 
 pub async fn report_unique_sellers_other(pool: &DbPool) -> Result<()> {
+    println!("report_unique_sellers_other");
 
     diesel::sql_query(
        "DELETE FROM univ2_sellers_running_count_other"
@@ -200,7 +207,6 @@ pub async fn report_unique_sellers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_sell_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_sell_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_sell_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_sell_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_sell_plg_quick)
                         AS events
               WHERE
@@ -214,7 +220,6 @@ pub async fn report_unique_sellers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_sell_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_sell_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_sell_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_sell_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_sell_plg_quick)
                         AS events
             ) as b
