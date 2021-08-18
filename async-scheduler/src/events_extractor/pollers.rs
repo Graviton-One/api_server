@@ -115,10 +115,13 @@ pub async fn poll_events_erc20_approval(
             web3.eth().logs(filter).await.context("get logs erc20 approval")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let owner: String = hex_to_string(Address::from(e.topics[1]));
             let spender: String = hex_to_string(Address::from(e.topics[2]));
@@ -186,11 +189,6 @@ pub async fn poll_events_erc20_approval(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
 
     Ok(())
@@ -238,10 +236,13 @@ pub async fn poll_events_erc20_transfer(
             web3.eth().logs(filter).await.context("get logs erc20 transfer")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
-        #[cfg(target_os = "macos")]
-        if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let sender: String = hex_to_string(Address::from(e.topics[1]));
             let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -311,11 +312,6 @@ pub async fn poll_events_erc20_transfer(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -365,10 +361,13 @@ pub async fn poll_events_anyv4_transfer(
             web3.eth().logs(filter).await.context("get logs anyv4 transfer")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let sender: String = hex_to_string(Address::from(e.topics[1]));
             let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -435,11 +434,6 @@ pub async fn poll_events_anyv4_transfer(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -486,10 +480,13 @@ pub async fn poll_events_anyv4_swapin(
             web3.eth().logs(filter).await.context("get logs anyv4 swapin")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let transfer_tx_hash: String = hex_to_string(e.topics[1]);
             let account: String = hex_to_string(Address::from(e.topics[2]));
@@ -556,11 +553,6 @@ pub async fn poll_events_anyv4_swapin(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -607,10 +599,13 @@ pub async fn poll_events_anyv4_swapout(
             web3.eth().logs(filter).await.context("get logs anyv4 swapout")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, table_name, 100) { return Ok(()) }
 
             let account: String = hex_to_string(Address::from(e.topics[1]));
             let bindaddr: String = hex_to_string(Address::from(e.topics[2]));
@@ -677,11 +672,6 @@ pub async fn poll_events_anyv4_swapout(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -757,6 +747,11 @@ pub async fn poll_events_univ2_pair_created(
         let logs = [logs1, logs2].concat();
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            x, table_name
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
 
@@ -841,11 +836,6 @@ pub async fn poll_events_univ2_pair_created(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
-            x, table_name
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -894,10 +884,13 @@ pub async fn poll_events_univ2_transfer(
             web3.eth().logs(filter).await.context("get logs univ2 transfer")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 10) { return Ok(()) }
 
             let sender: String = hex_to_string(Address::from(e.topics[1]));
             let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -966,11 +959,6 @@ pub async fn poll_events_univ2_transfer(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1018,10 +1006,13 @@ pub async fn poll_events_univ2_swap(
             web3.eth().logs(filter).await.context("get logs univ2 swap")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
 
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 10) { return Ok(()) }
 
             let sender: String = hex_to_string(Address::from(e.topics[1]));
             let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -1107,11 +1098,6 @@ pub async fn poll_events_univ2_swap(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1157,10 +1143,12 @@ pub async fn poll_events_univ2_mint(
             web3.eth().logs(filter).await.context("get logs univ2 mint")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
-
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 10) { return Ok(()) }
 
             let sender: String = hex_to_string(Address::from(e.topics[1]));
 
@@ -1232,11 +1220,6 @@ pub async fn poll_events_univ2_mint(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -1282,10 +1265,12 @@ pub async fn poll_events_univ2_burn(
             web3.eth().logs(filter).await.context("get logs univ2 burn")?;
         println!("requested {} logs, block {}-{}", logs.len(), x, x + block_step - 1);
 
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
+            x, table_name, pair_id
+        ))
+            .execute(&pool.get().context("execute sql query")?);
         for (i, e) in logs.into_iter().enumerate() {
-
-            #[cfg(target_os = "macos")]
-            if debug_limit(pool, table_name, 10) { return Ok(()) }
 
             let sender: String = hex_to_string(Address::from(e.topics[1]));
             let receiver: String = hex_to_string(Address::from(e.topics[2]));
@@ -1362,11 +1347,6 @@ pub async fn poll_events_univ2_burn(
             ))
                 .execute(&pool.get().context("execute sql query")?);
         }
-        diesel::sql_query(format!(
-            "UPDATE blocks SET block_number={} WHERE name_table='{}-{}'",
-            x, table_name, pair_id
-        ))
-            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
