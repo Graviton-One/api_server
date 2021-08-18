@@ -5,7 +5,6 @@ use diesel::{
 };
 use std::sync::Arc;
 use serde_json::Value;
-use async_trait::async_trait;
 use crate::schema::{
     chains,
     dexes,
@@ -14,12 +13,11 @@ use crate::schema::{
 
 use web3::{
     self,
-    Transport,
     contract::{Contract, Options},
+    types::*,
 };
-use ethcontract::prelude::*;
 
-pub type Web3Instance = web3::Web3<ethcontract::Http>;
+pub type Web3Instance = web3::Web3<web3::Transport::Http>;
 
 
 #[derive(Default, Debug, Clone)]
@@ -40,7 +38,7 @@ pub struct PoolData {
 }
 
 impl PoolData {
-    fn get_pools(&conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<Self> {
+    fn get_pools(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<Self> {
         pools::table.inner_join(dexes::table)
             .inner_join(chains::table)
             .select((pools::id, chains::gton_address, chains::network_id, chains::node_url, pools::pool_address))
@@ -60,7 +58,10 @@ impl PoolData {
 }
 
 
-async fn retrieve_token<T: Transport>(contract: &Contract<T>, property: &str) -> Result<Address, web3::contract::Error> {
+async fn retrieve_token<T: web3::Transport>(
+    contract: &Contract<T>, 
+    property: &str
+) -> Result<Address, web3::contract::Error> {
     contract
         .query(property, (), None, Options::default(), None).await
 }
