@@ -4,6 +4,10 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use tokio::time::{
+    sleep,
+  Duration,
+};
 use std::sync::Arc;
 use serde_json::Value;
 use crate::schema::{
@@ -16,7 +20,7 @@ use web3::{
     types::*,
 };
 
-pub type Web3Instance = web3::Web3<web3::Transport::Http>;
+pub type Web3Instance = web3::Web3<ethcontract::Http>;
 
 
 #[derive(Default, Debug, Clone)]
@@ -126,12 +130,19 @@ pub fn string_to_h160(string: String) -> ethcontract::H160 {
 }
 
 impl PoolsExtractor {
-    pub fn new(pool: Arc<Pool<ConnectionManager<PgConnection>>>) -> Self {
+    pub fn new() -> Self {
+        let manager = ConnectionManager::<PgConnection>::new(
+            std::env::var("DATABASE_URL").expect("missing db url"),
+        );
+        let pool = Pool::builder().build(manager).expect("pool build");
+
+        let pool = std::sync::Arc::new(pool);
         PoolsExtractor {
             pool,
         }
     }
     pub async fn get_gton_reserves(&self) -> () {
+        loop {
         let pools: Vec<PoolData> = PoolData::get_pools(self.pool.clone());
         for pool in pools {
             let web3 = create_instance(&pool.node_url);
@@ -144,9 +155,12 @@ impl PoolsExtractor {
             .await
             .expect("error getting gton reserves");
             PoolData::set_gton_reserves(pool.id, (reserves/10^18) as f64, self.pool.clone());
+            }
+        sleep(Duration::from_secs((15) as u64)).await;
         }
     }
     pub async fn get_pool_tvl(&self) -> (){
+        loop {
         let pools: Vec<PoolData> = PoolData::get_pools(self.pool.clone());
         for pool in pools {
             let web3 = create_instance(&pool.node_url);
@@ -156,5 +170,7 @@ impl PoolsExtractor {
             let tvl = price_a * reserves.token_a_reserves.to_f64_lossy() + price_b * reserves.token_b_reserves.to_f64_lossy();
             PoolData::set_tvl(pool.id, tvl,self.pool.clone());
         }
+        sleep(Duration::from_secs((15) as u64)).await;
+    }
     }
 }
