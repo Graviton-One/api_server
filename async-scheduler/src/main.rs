@@ -4,6 +4,7 @@ use async_scheduler::events_extractor::EventsExtractor;
 use async_scheduler::forum_extractor::ForumExtractor;
 use async_scheduler::keeper_extractor::KeeperExtractor;
 use async_scheduler::price_coingecko::CoingeckoPrice;
+use async_scheduler::reserves_poller::PoolsExtractor;
 
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
@@ -38,6 +39,14 @@ async fn main() {
          let p = pool.clone();
          tokio::task::spawn(async move {
             ForumExtractor::new(p).run().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+            PoolsExtractor::new(p).get_pool_tvl().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+            PoolsExtractor::new(p).get_gton_reserves().await;
          });
     }).unwrap()).unwrap();
 

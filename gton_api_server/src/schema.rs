@@ -91,10 +91,46 @@ table! {
     }
 }
 
+table! {
+    chains (id) {
+        id -> BigInt,
+        coingecko_id -> Varchar,
+        chain_name -> Varchar,
+        chain_icon -> Varchar,
+        chain_short -> Varchar,
+        network_id -> Int4,
+        explorer -> Varchar,
+        node_url -> Varchar,
+        token -> Varchar,
+        gton_address -> Varchar,
+    }
+}
+table! {
+    dexes (id) {
+        id -> BigInt,
+        chain_id -> BigInt,
+        name -> Varchar,
+    }
+}
+table! {
+    pools (id) {
+        id -> BigInt,
+        dex_id -> BigInt,
+        name -> Varchar,
+        pool_address -> Varchar,
+        swap_link -> Varchar,
+        pair_link -> Varchar,
+        gton_reserves -> Float8,
+        tvl -> Float8,
+    }
+}
+
 joinable!(achievements_to_users -> achievements (achievement_id));
 joinable!(achievements_to_users -> users (user_id));
 joinable!(total_values_for_users -> users (user_id));
 joinable!(total_values_for_users -> value_senders (sender_id));
+joinable!(dexes -> chains (chain_id));
+joinable!(pools -> dexes (dex_id));
 
 allow_tables_to_appear_in_same_query!(
     achievements,

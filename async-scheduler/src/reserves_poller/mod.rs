@@ -55,7 +55,7 @@ impl PoolData {
         diesel::sql_query("SELECT c.id, c.gton_address, c.coingecko_id, c.node_url, p.pool_address 
         FROM chains AS c 
         LEFT JOIN dexes AS d ON d.chain_id = c.id 
-        LEFT JOIN pools AS p ON d.id = p.dex_id").get_results::<PoolData>(&conn.get().unwrap())
+        LEFT JOIN pools AS p ON d.id = p.dex_id;").get_results::<PoolData>(&conn.get().unwrap())
         .unwrap()
     }
     fn set_tvl(id: i64, tvl: f64, conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> () {
@@ -126,6 +126,11 @@ pub fn string_to_h160(string: String) -> ethcontract::H160 {
 }
 
 impl PoolsExtractor {
+    pub fn new(pool: Arc<Pool<ConnectionManager<PgConnection>>>) -> Self {
+        PoolsExtractor {
+            pool,
+        }
+    }
     pub async fn get_gton_reserves(&self) -> () {
         let pools: Vec<PoolData> = PoolData::get_pools(self.pool.clone());
         for pool in pools {
