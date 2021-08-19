@@ -1,7 +1,6 @@
 [package]
-name = "async_scheduler"
+name = "governance_poller"
 version = "0.1.0"
-authors = ["BadConfig array.clean@gmail.com github/badconfig"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,18 +8,13 @@ edition = "2018"
 [dependencies]
 web3 = "0.17.0"
 tokio = "1.0"
-#tokio = {version = "1.0", features = ["macros","rt-threaded", "full"]}
-#tokio-diesel = "0.3.0"
+ethcontract = "0.14.0"
 chrono = "0.4.19"
 diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono","numeric"] }
 hex = "0.4.3"
 serde = "1.0.126"
 reqwest = { version = "0.11.4", features = ["json"]}
 dotenv = "0.15.0"
-diesel_migrations = "1.4.0"
-tokio-cron-scheduler = "0.2.1"
 serde_json = { version = "1.0.64"}
 bigdecimal = "0.1.0"
 num-bigint = "0.4.0"
-jsonrpc-core = "17.0.0"
-anyhow = "1.0.42"

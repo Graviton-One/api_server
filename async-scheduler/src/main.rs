@@ -1,10 +1,10 @@
 use tokio_cron_scheduler::{JobScheduler, JobToRun, Job};
 
 use async_scheduler::events_extractor::EventsExtractor;
+use async_scheduler::users_extractor::UsersExtractor;
 use async_scheduler::forum_extractor::ForumExtractor;
 use async_scheduler::keeper_extractor::KeeperExtractor;
 use async_scheduler::price_coingecko::CoingeckoPrice;
-use async_scheduler::reserves_poller::PoolsExtractor;
 
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
@@ -19,26 +19,6 @@ async fn main() {
     let pool = Pool::builder().build(manager).expect("pool build");
 
     let pool = std::sync::Arc::new(pool);
-    
-    let p = pool.clone();
-    tokio::task::spawn(async move {
-       PoolsExtractor::new(p).get_pool_tvl().await;
-    });
-    let p = pool.clone();
-    tokio::task::spawn(async move {
-       PoolsExtractor::new(p).get_gton_reserves().await;
-    });
-
-    let p = pool.clone();
-    tokio::task::spawn(async move {
-        EventsExtractor::new(p.clone()).run().await;
-    });
-
-    let p = pool.clone();
-    tokio::task::spawn(async move {
-        KeeperExtractor::new(p.clone()).run().await;
-    });
-
 
     sched.add(Job::new("0 0 * * * *", move |_,_| {
          let p = pool.clone();
@@ -48,6 +28,14 @@ async fn main() {
          let p = pool.clone();
          tokio::task::spawn(async move {
             ForumExtractor::new(p).run().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+             EventsExtractor::new(p.clone()).run().await;
+         });
+         let p = pool.clone();
+         tokio::task::spawn(async move {
+             UsersExtractor::new(p.clone()).run().await;
          });
     }).unwrap()).unwrap();
 

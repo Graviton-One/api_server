@@ -12,12 +12,11 @@ use crate::schema::{
 
 use web3::{
     self,
-    Transport,
     contract::{Contract, Options},
+    types::*,
 };
-use ethcontract::prelude::*;
 
-pub type Web3Instance = web3::Web3<ethcontract::Http>;
+pub type Web3Instance = web3::Web3<web3::Transport::Http>;
 
 
 #[derive(Default, Debug, Clone)]
@@ -73,7 +72,10 @@ impl PoolData {
 }
 
 
-async fn retrieve_token<T: Transport>(contract: &Contract<T>, property: &str) -> Result<Address, web3::contract::Error> {
+async fn retrieve_token<T: web3::Transport>(
+    contract: &Contract<T>, 
+    property: &str
+) -> Result<Address, web3::contract::Error> {
     contract
         .query(property, (), None, Options::default(), None).await
 }
