@@ -51,13 +51,13 @@ pub struct TvlData {
 impl TvlData {
     pub async fn get( 
         conn: &PgConnection,
-    ) -> Result<Vec<ReservesData>> {
+    ) -> Result<Vec<TvlData>> {
         let r = diesel::sql_query(
-            "SELECT p.id, p.name, p.swap_link, p.pair_link, p.image AS pool_image, p.tvl, d.small_image AS amm_image, d.name AS amm_name, c.image AS chain_image 
+            "SELECT p.id, p.name, p.swap_link, p.pair_link, p.image AS pool_image, p.tvl, d.small_image AS amm_image, d.name AS amm_name, c.chain_icon AS chain_image 
             FROM chains AS c 
             LEFT JOIN dexes AS d ON d.chain_id = c.id 
             LEFT JOIN pools AS p ON d.id = p.dex_id;")
-            .get_results::<ReservesData>(conn)?;
+            .get_results::<TvlData>(conn)?;
         Ok(r)
     }
 }
@@ -66,7 +66,7 @@ impl ReservesData {
         conn: &PgConnection,
     ) -> Result<Vec<ReservesData>> {
         let r = diesel::sql_query(
-            "SELECT d.id, d.image, d.name, SUM(p.gton_reserves) FROM dexes AS d
+            "SELECT d.id, d.image, d.name, SUM(p.gton_reserves) AS reserves FROM dexes AS d
             LEFT JOIN pools AS p ON d.id = p.dex_id
             GROUP BY d.id;")
             .get_results::<ReservesData>(conn)?;
