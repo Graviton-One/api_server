@@ -28,7 +28,7 @@ pub struct Constants {
 
 pub static C: Constants = Constants {
     ftm_gton: "0xc1be9a4d5d45beeacae296a7bd5fadbfc14602c4",
-    eth_gton: "0x01e0E2e61f554eCAaeC0cC933E739Ad90f24a86d",
+    eth_gton: "0x01e0e2e61f554ecaaec0cc933e739ad90f24a86d",
     plg_gton: "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
     bsc_gton: "0x64d5baf5ac030e2b7c435add967f787ae94d0205",
     eth_sushi_factory: "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac",

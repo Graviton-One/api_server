@@ -5,17 +5,18 @@ use diesel::prelude::*;
 pub async fn report_buy_amount_daily_other(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_buy_amount_daily_other");
+
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_buy_amount_daily_other"
+       "DELETE FROM univ2_buy_amount_daily_other"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_buy_ftm_amount_daily_other AS \
+       "INSERT INTO univ2_buy_ftm_amount_daily_other (stamp, sum) \
         SELECT stamp::date, sum(\"amount_gton_out\") \
         FROM univ2_buy_ftm_spirit \
             NATURAL FULL OUTER JOIN univ2_buy_ftm_spooky
             NATURAL FULL OUTER JOIN univ2_buy_bsc_pancake
-            NATURAL FULL OUTER JOIN univ2_buy_plg_sushi
             NATURAL FULL OUTER JOIN univ2_buy_plg_quick
         GROUP BY 1 ORDER BY 1 ASC;"
     )
@@ -26,12 +27,14 @@ pub async fn report_buy_amount_daily_other(
 pub async fn report_buy_amount_daily_eth(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_buy_amount_daily_eth");
+
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_buy_amount_daily_eth"
+       "DELETE FROM univ2_buy_amount_daily_eth"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_buy_amount_daily_eth AS \
+       "INSERT INTO univ2_buy_amount_daily_eth (stamp, sum) \
         SELECT stamp::date, sum(\"amount_gton_out\") \
         FROM univ2_buy_eth_sushi \
         GROUP BY 1 ORDER BY 1 ASC;"
@@ -43,17 +46,18 @@ pub async fn report_buy_amount_daily_eth(
 pub async fn report_sell_amount_daily_other(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_sell_amount_daily_other");
+
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_sell_amount_daily_other"
+       "DELETE FROM univ2_sell_amount_daily_other"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_sell_amount_daily_other AS \
+       "INSERT INTO univ2_sell_amount_daily_other (stamp, sum) \
         SELECT stamp::date, sum(\"amount_gton_in\") \
         FROM univ2_sell_ftm_spirit \
             NATURAL FULL OUTER JOIN univ2_sell_ftm_spooky
             NATURAL FULL OUTER JOIN univ2_sell_bsc_pancake
-            NATURAL FULL OUTER JOIN univ2_sell_plg_sushi
             NATURAL FULL OUTER JOIN univ2_sell_plg_quick
         GROUP BY 1 ORDER BY 1 ASC;"
     )
@@ -64,12 +68,14 @@ pub async fn report_sell_amount_daily_other(
 pub async fn report_sell_amount_daily_eth(
     pool: &DbPool,
 ) -> Result<()> {
+    println!("report_sell_amount_daily_eth");
+
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_sell_amount_daily_eth"
+       "DELETE FROM univ2_sell_amount_daily_eth"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_sell_amount_daily_eth AS \
+       "INSERT INTO univ2_sell_amount_daily_eth (stamp, sum) \
         SELECT stamp::date, sum(\"amount_gton_in\") \
         FROM univ2_sell_eth_sushi \
         GROUP BY 1 ORDER BY 1 ASC;"
@@ -79,13 +85,14 @@ pub async fn report_sell_amount_daily_eth(
 }
 
 pub async fn report_unique_buyers_eth(pool: &DbPool) -> Result<()> {
+    println!("report_unique_buyers_eth");
 
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_buyers_running_count_eth"
+       "DELETE FROM univ2_buyers_running_count_eth"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_buyers_running_count_eth AS \
+       "INSERT INTO univ2_buyers_running_count_eth (day, users) \
         SELECT \
             day, \
             ( \
@@ -111,13 +118,14 @@ pub async fn report_unique_buyers_eth(pool: &DbPool) -> Result<()> {
 }
 
 pub async fn report_unique_sellers_eth(pool: &DbPool) -> Result<()> {
+    println!("report_unique_sellers_eth");
 
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_sellers_running_count_eth"
+       "DELETE FROM univ2_sellers_running_count_eth"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_sellers_running_count_eth AS \
+       "INSERT INTO univ2_sellers_running_count_eth (day, users) \
         SELECT \
             day, \
             ( \
@@ -143,13 +151,14 @@ pub async fn report_unique_sellers_eth(pool: &DbPool) -> Result<()> {
 }
 
 pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
+    println!("report_unique_buyers_other");
 
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_buyers_running_count_other"
+       "DELETE FROM univ2_buyers_running_count_other"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_buyers_running_count_other AS \
+       "INSERT INTO univ2_buyers_running_count_other (day, users) \
         SELECT
             day,
             (
@@ -158,7 +167,6 @@ pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_buy_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_buy_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_buy_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_buy_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_buy_plg_quick)
                         AS events
               WHERE
@@ -172,7 +180,6 @@ pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_buy_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_buy_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_buy_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_buy_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_buy_plg_quick)
                         AS events
             ) as b
@@ -184,13 +191,14 @@ pub async fn report_unique_buyers_other(pool: &DbPool) -> Result<()> {
 }
 
 pub async fn report_unique_sellers_other(pool: &DbPool) -> Result<()> {
+    println!("report_unique_sellers_other");
 
     diesel::sql_query(
-       "DROP TABLE IF EXISTS univ2_sellers_running_count_other"
+       "DELETE FROM univ2_sellers_running_count_other"
     )
         .execute(&pool.get().context("execute sql query")?);
     diesel::sql_query(
-       "CREATE TABLE univ2_sellers_running_count_other AS \
+       "INSERT INTO univ2_sellers_running_count_other (day, users) \
         SELECT
             day,
             (
@@ -199,7 +207,6 @@ pub async fn report_unique_sellers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_sell_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_sell_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_sell_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_sell_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_sell_plg_quick)
                         AS events
               WHERE
@@ -213,7 +220,6 @@ pub async fn report_unique_sellers_other(pool: &DbPool) -> Result<()> {
               FROM (univ2_sell_ftm_spirit
                     NATURAL FULL OUTER JOIN univ2_sell_ftm_spooky
                     NATURAL FULL OUTER JOIN univ2_sell_bsc_pancake
-                    NATURAL FULL OUTER JOIN univ2_sell_plg_sushi
                     NATURAL FULL OUTER JOIN univ2_sell_plg_quick)
                         AS events
             ) as b
