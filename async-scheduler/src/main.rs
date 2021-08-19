@@ -19,6 +19,15 @@ async fn main() {
     let pool = Pool::builder().build(manager).expect("pool build");
 
     let pool = std::sync::Arc::new(pool);
+    
+    let p = pool.clone();
+    tokio::task::spawn(async move {
+       PoolsExtractor::new(p).get_pool_tvl().await;
+    });
+    let p = pool.clone();
+    tokio::task::spawn(async move {
+       PoolsExtractor::new(p).get_gton_reserves().await;
+    });
 
     let p = pool.clone();
     tokio::task::spawn(async move {
@@ -39,14 +48,6 @@ async fn main() {
          let p = pool.clone();
          tokio::task::spawn(async move {
             ForumExtractor::new(p).run().await;
-         });
-         let p = pool.clone();
-         tokio::task::spawn(async move {
-            PoolsExtractor::new(p).get_pool_tvl().await;
-         });
-         let p = pool.clone();
-         tokio::task::spawn(async move {
-            PoolsExtractor::new(p).get_gton_reserves().await;
          });
     }).unwrap()).unwrap();
 

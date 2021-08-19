@@ -36,8 +36,6 @@ pub struct PoolData {
     gton_address: String,
     #[sql_type = "Text"]
     coingecko_id: String,
-    #[sql_type = "BigInt"]
-    network_id: i64,
     #[sql_type = "Text"]
     node_url: String,
     #[sql_type = "Text"]
@@ -135,10 +133,10 @@ impl PoolsExtractor {
         let pools: Vec<PoolData> = PoolData::get_pools(self.pool.clone());
         for pool in pools {
             let web3 = create_instance(&pool.node_url);
-            let contract_address = string_to_h160(pool.gton_address);
+            let contract_address: Address = pool.gton_address.parse().unwrap();
             let contract = Contract::from_json(web3.eth(), contract_address, include_bytes!("abi/erc20.json"))
             .expect("create erc20 contract");
-            let query_address = string_to_h160(pool.pool_address);
+            let query_address: Address = pool.pool_address.parse().unwrap();
             let reserves: i64 = contract
             .query("balanceOf",  query_address, None, Options::default(), None)
             .await
