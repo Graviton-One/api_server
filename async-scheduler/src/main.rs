@@ -20,11 +20,6 @@ async fn main() {
 
     let pool = std::sync::Arc::new(pool);
 
-    let p = pool.clone();
-    tokio::task::spawn(async move {
-        KeeperExtractor::new(p.clone()).run().await;
-    });
-
     sched.add(Job::new("0 0 * * * *", move |_,_| {
          let p = pool.clone();
          tokio::task::spawn(async move {

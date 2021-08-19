@@ -23,7 +23,7 @@ table! {
     }
 }
 
-#[derive(Queryable)]
+#[derive(Queryable,Debug)]
 pub struct Users {
     id: i32,
     address: String,
@@ -53,7 +53,8 @@ impl Poller {
         let pool = Pool::builder().build(manager).expect("pool build");
 
         let pool = std::sync::Arc::new(pool);
-        let http = web3::transports::Http::new("https://rpc.ftm.tools")
+        let rpc_url = std::env::var("RPC_URL").expect("missing rpc url");
+        let http = web3::transports::Http::new(&rpc_url)
             .expect("err creating http");
         let web3 = web3::Web3::new(http);
         let balance_keeper = std::env::var("BALANCE_KEEPER_ADDRESS")
@@ -85,6 +86,7 @@ impl Poller {
                 .filter(users::external_address.is_null())
                 .get_results::<Users>(&self.pool.get().unwrap())
                 .unwrap();
+            println!("new users: {:?}", new_users);
             for instance in new_users {
                 let internal_id: U256 = U256::from_dec_str(&instance.address).unwrap();
                 let data: (String,Vec<u8>) = contract
