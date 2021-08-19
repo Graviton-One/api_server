@@ -5,6 +5,7 @@ use tokio::time::{
 };
 use std::sync::Arc;
 use bigdecimal::BigDecimal;
+use diesel_migrations::run_pending_migrations;
 use std::str::FromStr;
 
 use web3::transports::Http;
@@ -186,37 +187,18 @@ pub struct KeeperExtractor {
     farmer: Address,
     add_method_topic: H256,
     farm_method_topic: H256,
-    poller_id: i32,
-    delay: u64, 
 }
 
 impl KeeperExtractor {
     pub fn new(
+        pool: Arc<Pool<ConnectionManager<PgConnection>>>,
     ) -> Self {
-
-        let manager = ConnectionManager::<PgConnection>::new(
-            std::env::var("DATABASE_URL").expect("missing db url"),
-        );
-        let pool = Pool::builder().build(manager).expect("pool build");
-
-        let pool = std::sync::Arc::new(pool);
-        
         let http = web3::transports::Http::new("https://rpc.ftm.tools")
             .expect("err creating http");
         let web3 = web3::Web3::new(http);
         let balance_keeper = std::env::var("BALANCE_KEEPER_ADDRESS")
             .expect("failed to get address");
         let balance_keeper: Address = balance_keeper.parse().unwrap();
-
-        let poller_id: i32 = std::env::var("POLLER_ID")
-            .expect("failed to get address")
-            .parse()
-            .unwrap();
-
-        let delay: u64 = std::env::var("DELAY")
-            .expect("failed to get address")
-            .parse()
-            .unwrap();
 
         let farmer = std::env::var("FARM_AGGREGATOR_ADDRESS")
             .expect("failed to get address");
@@ -229,7 +211,6 @@ impl KeeperExtractor {
         let farm_method_topic = 
             "0xdb82536d6a90c757b9cecfe267e7dd17bbb96cb1acd169e21771d6b816ab0bc4";
         let farm_method_topic: H256 = farm_method_topic.parse().unwrap();
-
         KeeperExtractor {
             pool,
             web3,
@@ -237,14 +218,12 @@ impl KeeperExtractor {
             farmer,
             add_method_topic,
             farm_method_topic,
-            poller_id,
-            delay,
         }
     }
 
     pub async fn run(&self) {
         loop {
-            let num = PollerState::get(self.poller_id, self.pool.clone()).await;
+            let num = PollerState::get(1, self.pool.clone()).await;
             let prev_block = BlockNumber::Number(num.into());
             let current_block_num = self.web3.eth().block_number().await.unwrap();
             let current_block_num = (current_block_num-U64::from(10))

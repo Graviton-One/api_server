@@ -5,7 +5,6 @@ use tokio::time::{
 };
 use std::sync::Arc;
 use bigdecimal::BigDecimal;
-use diesel_migrations::run_pending_migrations;
 use std::str::FromStr;
 
 use diesel::{

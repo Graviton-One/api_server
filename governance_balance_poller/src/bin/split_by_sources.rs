@@ -24,11 +24,12 @@ use serde::{
     Serialize,
     Deserialize,
 };
-use governance_poller::user_address_mapping::Poller;
+
+use governance_poller::split_by_sources::KeeperExtractor;
 
 #[tokio::main]
 async fn main() {
-    Poller::new().run().await;
+    KeeperExtractor::new().run().await;
 }
 
 

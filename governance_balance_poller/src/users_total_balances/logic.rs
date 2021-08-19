@@ -13,6 +13,7 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
 };
 
+#[derive(Debug)]
 pub struct Value {
     pub internal_address: String,
     pub amount: BigDecimal,
@@ -74,6 +75,7 @@ impl BalanceInOutValues {
                     internal_address: to.to_string(),
                     amount: BigDecimal::from_str(&amount.to_string()).unwrap(),
                 };
+                println!("got {:?}",d);
                 r.push(d);
             }
             BalanceInOutValues(r)

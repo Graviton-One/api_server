@@ -7,7 +7,6 @@ use tokio::time::{
 };
 use std::sync::Arc;
 use bigdecimal::BigDecimal;
-use diesel_migrations::run_pending_migrations;
 use std::str::FromStr;
 
 use web3::transports::Http;
@@ -27,7 +26,7 @@ use serde::{
 };
 
 pub mod users_total_balances;
-//pub mod split_by_sources;
+pub mod split_by_sources;
 pub mod db_state;
 pub mod schema;
 pub mod user_address_mapping;

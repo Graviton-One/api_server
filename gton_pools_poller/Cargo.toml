@@ -1,5 +1,5 @@
 [package]
-name = "governance_poller"
+name = "gton_pools_poller"
 version = "0.1.0"
 edition = "2018"
 
@@ -7,14 +7,17 @@ edition = "2018"
 
 [dependencies]
 web3 = "0.17.0"
-tokio = "1.0"
-ethcontract = "0.14.0"
+tokio = {version = "1.0.0", features = ["full"]}
 chrono = "0.4.19"
 diesel = { version = "1.4.4", features = ["postgres", "r2d2", "chrono","numeric"] }
 hex = "0.4.3"
 serde = "1.0.126"
 reqwest = { version = "0.11.4", features = ["json"]}
 dotenv = "0.15.0"
+diesel_migrations = "1.4.0"
+tokio-cron-scheduler = "0.2.1"
 serde_json = { version = "1.0.64"}
 bigdecimal = "0.1.0"
 num-bigint = "0.4.0"
+jsonrpc-core = "17.0.0"
+anyhow = "1.0.42"

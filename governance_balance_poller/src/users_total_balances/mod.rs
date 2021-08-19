@@ -6,7 +6,6 @@ use tokio::time::{
 };
 use std::sync::Arc;
 use bigdecimal::BigDecimal;
-use diesel_migrations::run_pending_migrations;
 use std::str::FromStr;
 
 use web3::transports::Http;
@@ -87,6 +86,7 @@ impl Poller {
                 .min(U64::from(num + 1000));
             let current_block = BlockNumber::Number(current_block_num);
 
+            println!("getting events");
             let add = BalanceInOutValues::new(
                 &self.web3, 
                 prev_block, 
@@ -117,6 +117,7 @@ impl Poller {
                     Ok(())
                 })
                 .unwrap();
+            println!("going to sleep");
             sleep(Duration::from_secs((self.delay) as u64)).await;
         }
     }
