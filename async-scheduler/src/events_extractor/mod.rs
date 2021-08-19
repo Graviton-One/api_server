@@ -60,17 +60,17 @@ pub struct EventsExtractor {
 impl EventsExtractor {
     pub fn new(pool: DbPool) -> Self {
         let ftm_web3 =
-            web3::Web3::new(Http::new("https://rpc.ftm.tools").expect("err creating web3 ftm"));
+            web3::Web3::new(Http::new("https://target.nodes.gravityhub.org/ftm").expect("err creating web3 ftm"));
         let eth_rpc: String =
             std::env::var("ETH_RPC").unwrap_or("https://mainnet.infura.io/v3/77f1c5201f43496fb13f1855b97da1dc".to_string());
         let eth_web3 =
             web3::Web3::new(Http::new(&eth_rpc).expect("err creating web3 eth"));
         let bsc_rpc: String =
-            std::env::var("BSC_RPC").unwrap_or("https://bsc-dataseed.binance.org/".to_string());
+            std::env::var("BSC_RPC").unwrap_or("https://target.nodes.gravityhub.org/bsc".to_string());
         let bsc_web3 =
             web3::Web3::new(Http::new(&bsc_rpc).expect("err creating web3 ftm"));
         let plg_rpc: String =
-            std::env::var("PLG_RPC").unwrap_or("https://matic-mainnet.chainstacklabs.com".to_string());
+            std::env::var("PLG_RPC").unwrap_or("https://target.nodes.gravityhub.org/polygon".to_string());
         let plg_web3 =
             web3::Web3::new(Http::new(&plg_rpc).expect("err creating web3 ftm"));
         // let ava_web3 =
@@ -93,26 +93,50 @@ impl EventsExtractor {
     }
 
     pub async fn run(&self) -> Result<()> {
-        match_error(self.poll_ftm().await);
-        match_error(self.poll_plg().await);
-        match_error(self.poll_eth().await);
-        match_error(self.poll_bsc().await);
-        let result = self.build_reports().await;
-        match_error(result);
+        let web3 = self.ftm_web3.clone();
+        let pool = self.pool.clone();
+        let handle_ftm = tokio::spawn(async move {
+            poll_ftm(&web3, &pool).await
+        });
+        let web3 = self.bsc_web3.clone();
+        let pool = self.pool.clone();
+        let handle_bsc = tokio::spawn(async move {
+            poll_bsc(&web3, &pool).await
+        });
+        let web3 = self.eth_web3.clone();
+        let pool = self.pool.clone();
+        let handle_eth = tokio::spawn(async move {
+            poll_eth(&web3, &pool).await
+        });
+        let web3 = self.plg_web3.clone();
+        let pool = self.pool.clone();
+        let handle_plg = tokio::spawn(async move {
+            poll_plg(&web3, &pool).await
+        });
+        match_error(handle_ftm.await.unwrap());
+        match_error(handle_bsc.await.unwrap());
+        match_error(handle_eth.await.unwrap());
+        match_error(handle_plg.await.unwrap());
+        let pool = self.pool.clone();
+        match_error(build_reports(&pool).await);
+        println!("finished");
         Ok(())
     }
 
-    async fn poll_ftm(&self) -> Result<()> {
+}
+
+    async fn poll_ftm(web3: &web3::Web3<Http>, pool: &DbPool) -> Result<()> {
         println!("polling Fantom");
-        let block: Block<H256> = self.ftm_web3
+        let block: Block<H256> = web3
             .eth()
             .block(BlockNumber::Latest.into())
             .await
             .context("fetch block")?
             .context("block option")?;
         let latest_block = block.number.context("block number option")?.as_u64();
-        &self.poll_erc20(
-            &self.ftm_web3,
+        poll_erc20(
+            pool,
+            web3,
             C.ftm_gton,
             "events_erc20_approval_ftm",
             "events_erc20_transfer_ftm",
@@ -120,8 +144,9 @@ impl EventsExtractor {
             100000,
             latest_block,
         ).await;
-        &self.poll_anyv4(
-            &self.ftm_web3,
+        poll_anyv4(
+            pool,
+            web3,
             C.ftm_gton,
             "events_anyv4_swapin_ftm",
             "events_anyv4_swapout_ftm",
@@ -130,8 +155,9 @@ impl EventsExtractor {
             latest_block,
         ).await;
         println!("Polling Spirit");
-        &self.poll_univ2(
-            &self.ftm_web3,
+        poll_univ2(
+            pool,
+            web3,
             C.ftm_gton,
             C.ftm_spirit_factory,
             "events_univ2_pair_created_ftm_spirit",
@@ -148,8 +174,9 @@ impl EventsExtractor {
             latest_block,
         ).await;
         println!("Polling Spooky");
-        &self.poll_univ2(
-            &self.ftm_web3,
+        poll_univ2(
+            pool,
+            web3,
             C.ftm_gton,
             C.ftm_spooky_factory,
             "events_univ2_pair_created_ftm_spooky",
@@ -167,37 +194,41 @@ impl EventsExtractor {
         ).await;
         Ok(())
     }
-    async fn poll_bsc(&self) -> Result<()> {
+
+    async fn poll_bsc(web3: &web3::Web3<Http>, pool: &DbPool) -> Result<()> {
         println!("polling Binance");
-        let block: Block<H256> = self.bsc_web3
+        let block: Block<H256> = web3
             .eth()
             .block(BlockNumber::Latest.into())
             .await
             .context("fetch block")?
             .context("block option")?;
         let latest_block = block.number.context("block number option")?.as_u64();
-        &self.poll_erc20(
-            &self.bsc_web3,
+        poll_erc20(
+            pool,
+            &web3,
             C.bsc_gton,
             "events_erc20_approval_bsc",
             "events_erc20_transfer_bsc",
             C.gton_deploy_bsc,
-            2000,
+            500,
             latest_block,
         ).await;
-       
-        &self.poll_anyv4(
-            &self.bsc_web3,
+
+        poll_anyv4(
+            pool,
+            &web3,
             C.bsc_gton,
             "events_anyv4_swapin_bsc",
             "events_anyv4_swapout_bsc",
             C.gton_deploy_bsc,
-            2000,
+            500,
             latest_block,
         ).await;
         println!("Polling Pancake");
-        &self.poll_univ2(
-            &self.bsc_web3,
+        poll_univ2(
+            pool,
+            &web3,
             C.bsc_gton,
             C.bsc_pancake_factory,
             "events_univ2_pair_created_bsc_pancake",
@@ -210,22 +241,23 @@ impl EventsExtractor {
             "univ2_lp_add_bsc_pancake",
             "univ2_lp_remove_bsc_pancake",
             C.gton_deploy_bsc,
-            2000,
+            500,
             latest_block,
         ).await;
         Ok(())
     }
-    async fn poll_plg(&self) -> Result<()> {
+    async fn poll_plg(web3: &web3::Web3<Http>, pool: &DbPool) -> Result<()> {
         println!("polling Polygon");
-        let block: Block<H256> = self.plg_web3
+        let block: Block<H256> = web3
             .eth()
             .block(BlockNumber::Latest.into())
             .await
             .context("fetch block")?
             .context("block option")?;
         let latest_block = block.number.context("block number option")?.as_u64();
-        &self.poll_erc20(
-            &self.plg_web3,
+        poll_erc20(
+            pool,
+            &web3,
             C.plg_gton,
             "events_erc20_approval_plg",
             "events_erc20_transfer_plg",
@@ -233,8 +265,9 @@ impl EventsExtractor {
             2000,
             latest_block,
         ).await;
-        &self.poll_anyv4(
-            &self.plg_web3,
+        poll_anyv4(
+            pool,
+            &web3,
             C.plg_gton,
             "events_anyv4_swapin_plg",
             "events_anyv4_swapout_plg",
@@ -243,8 +276,9 @@ impl EventsExtractor {
             latest_block,
         ).await;
         println!("Polling Quick");
-        &self.poll_univ2(
-            &self.plg_web3,
+        poll_univ2(
+            pool,
+            &web3,
             C.plg_gton,
             C.plg_quick_factory,
             "events_univ2_pair_created_plg_quick",
@@ -263,17 +297,18 @@ impl EventsExtractor {
         Ok(())
     }
 
-    async fn poll_eth(&self) -> Result <()> {
+    async fn poll_eth(web3: &web3::Web3<Http>, pool: &DbPool) -> Result <()> {
         println!("polling Ethereum");
-        let block: Block<H256> = self.eth_web3
+        let block: Block<H256> = web3
             .eth()
             .block(BlockNumber::Latest.into())
             .await
             .context("fetch block")?
             .context("block option")?;
         let latest_block = block.number.context("block number option")?.as_u64();
-        &self.poll_erc20(
-            &self.eth_web3,
+        poll_erc20(
+            pool,
+            &web3,
             C.eth_gton,
             "events_erc20_approval_eth",
             "events_erc20_transfer_eth",
@@ -283,9 +318,9 @@ impl EventsExtractor {
         ).await;
 
         let result = poll_events_anyv4_transfer(
-            &self.pool,
+            &pool,
             "events_anyv4_transfer_eth",
-            &self.eth_web3,
+            &web3,
             C.eth_gton,
             C.gton_deploy_eth,
             100000,
@@ -295,8 +330,9 @@ impl EventsExtractor {
         match_error(result);
 
         println!("Polling eth Sushi");
-        &self.poll_univ2(
-            &self.eth_web3,
+        poll_univ2(
+            pool,
+            &web3,
             C.eth_gton,
             C.eth_sushi_factory,
             "events_univ2_pair_created_eth_sushi",
@@ -316,7 +352,7 @@ impl EventsExtractor {
     }
 
     async fn poll_erc20(
-        &self,
+        pool: &DbPool,
         web3: &Web3<Http>,
         gton: &str,
         events_erc20_approval_table: &str,
@@ -331,10 +367,10 @@ impl EventsExtractor {
              ON CONFLICT DO NOTHING",
             events_erc20_transfer_table, default_from_block
         ))
-            .execute(&self.pool.get().context("execute sql query")?);
+            .execute(&pool.get().context("execute sql query")?);
 
         let result = poll_events_erc20_transfer(
-            &self.pool,
+            &pool,
             events_erc20_transfer_table,
             web3,
             gton,
@@ -350,10 +386,10 @@ impl EventsExtractor {
              ON CONFLICT DO NOTHING",
             events_erc20_approval_table, default_from_block
         ))
-            .execute(&self.pool.get().context("execute sql query")?);
+            .execute(&pool.get().context("execute sql query")?);
 
         let result = poll_events_erc20_approval(
-            &self.pool,
+            &pool,
             events_erc20_approval_table,
             web3,
             gton,
@@ -368,7 +404,7 @@ impl EventsExtractor {
     }
 
     async fn poll_anyv4(
-        &self,
+        pool: &DbPool,
         web3: &Web3<Http>,
         gton: &str,
         events_anyv4_swapin_table: &str,
@@ -383,10 +419,10 @@ impl EventsExtractor {
              ON CONFLICT DO NOTHING",
             events_anyv4_swapin_table, default_from_block
         ))
-            .execute(&self.pool.get().context("execute sql query")?);
+            .execute(&pool.get().context("execute sql query")?);
 
         let result = poll_events_anyv4_swapin(
-            &self.pool,
+            &pool,
             events_anyv4_swapin_table,
             web3,
             gton,
@@ -402,10 +438,10 @@ impl EventsExtractor {
              ON CONFLICT DO NOTHING",
             events_anyv4_swapout_table, default_from_block
         ))
-            .execute(&self.pool.get().context("execute sql query")?);
+            .execute(&pool.get().context("execute sql query")?);
 
         let result = poll_events_anyv4_swapout(
-            &self.pool,
+            &pool,
             events_anyv4_swapout_table,
             web3,
             gton,
@@ -419,7 +455,7 @@ impl EventsExtractor {
     }
 
     async fn poll_univ2(
-        &self,
+        pool: &DbPool,
         web3: &Web3<Http>,
         gton: &str,
         factory: &str,
@@ -442,10 +478,10 @@ impl EventsExtractor {
              ON CONFLICT DO NOTHING",
             events_univ2_pair_created_table, default_from_block
         ))
-            .execute(&self.pool.get().context("execute sql query")?);
+            .execute(&pool.get().context("execute sql query")?);
 
         let result = poll_events_univ2_pair_created(
-            &self.pool,
+            &pool,
             events_univ2_pair_created_table,
             web3,
             gton,
@@ -461,7 +497,7 @@ impl EventsExtractor {
             "SELECT id, address, title \
              FROM {};", events_univ2_pair_created_table
         ))
-        .get_results::<Pair>(&self.pool.get().unwrap())
+        .get_results::<Pair>(&pool.get().unwrap())
         .unwrap();
 
         for pair in pairs {
@@ -472,10 +508,10 @@ impl EventsExtractor {
                   ON CONFLICT DO NOTHING",
                 events_univ2_transfer_table, pair.id, default_from_block
             ))
-                .execute(&self.pool.get().context("execute sql query")?);
+                .execute(&pool.get().context("execute sql query")?);
 
             let result = poll_events_univ2_transfer(
-                &self.pool,
+                &pool,
                 events_univ2_transfer_table,
                 web3,
                 pair.id,
@@ -492,10 +528,10 @@ impl EventsExtractor {
                   ON CONFLICT DO NOTHING",
                 events_univ2_swap_table, pair.id, default_from_block
             ))
-                .execute(&self.pool.get().context("execute sql query")?);
+                .execute(&pool.get().context("execute sql query")?);
 
             let result = poll_events_univ2_swap(
-                &self.pool,
+                &pool,
                 events_univ2_swap_table,
                 web3,
                 pair.id,
@@ -512,10 +548,10 @@ impl EventsExtractor {
                   ON CONFLICT DO NOTHING",
                 events_univ2_mint_table, pair.id, default_from_block
             ))
-                .execute(&self.pool.get().context("execute sql query")?);
+                .execute(&pool.get().context("execute sql query")?);
 
             let result = poll_events_univ2_mint(
-                &self.pool,
+                &pool,
                 events_univ2_mint_table,
                 web3,
                 pair.id,
@@ -532,10 +568,10 @@ impl EventsExtractor {
                   ON CONFLICT DO NOTHING",
                 events_univ2_burn_table, pair.id, default_from_block
             ))
-                .execute(&self.pool.get().context("execute sql query")?);
+                .execute(&pool.get().context("execute sql query")?);
 
             let result = poll_events_univ2_burn(
-                &self.pool,
+                &pool,
                 events_univ2_burn_table,
                 web3,
                 pair.id,
@@ -549,7 +585,7 @@ impl EventsExtractor {
         }
 
         let result = view_buy(
-            &self.pool,
+            &pool,
             events_univ2_pair_created_table,
             events_univ2_swap_table,
             univ2_buy_table,
@@ -558,7 +594,7 @@ impl EventsExtractor {
         match_error(result);
 
         let result = view_sell(
-            &self.pool,
+            &pool,
             events_univ2_pair_created_table,
             events_univ2_swap_table,
             univ2_sell_table,
@@ -567,7 +603,7 @@ impl EventsExtractor {
         match_error(result);
 
         let result = view_lp_add(
-            &self.pool,
+            &pool,
             events_univ2_pair_created_table,
             events_univ2_mint_table,
             events_univ2_transfer_table,
@@ -577,7 +613,7 @@ impl EventsExtractor {
         match_error(result);
 
         let result = view_lp_remove(
-            &self.pool,
+            &pool,
             events_univ2_pair_created_table,
             events_univ2_burn_table,
             events_univ2_transfer_table,
@@ -588,15 +624,14 @@ impl EventsExtractor {
         Ok(())
     }
 
-    async fn build_reports(&self) -> Result <()> {
-        report_sell_amount_daily_eth(&self.pool).await?;
-        report_sell_amount_daily_other(&self.pool).await?;
-        report_buy_amount_daily_eth(&self.pool).await?;
-        report_buy_amount_daily_other(&self.pool).await?;
-        report_unique_buyers_eth(&self.pool).await?;
-        report_unique_buyers_other(&self.pool).await?;
-        report_unique_sellers_eth(&self.pool).await?;
-        report_unique_sellers_other(&self.pool).await?;
+    async fn build_reports(pool: &DbPool) -> Result <()> {
+        report_sell_amount_daily_eth(&pool).await?;
+        report_sell_amount_daily_other(&pool).await?;
+        report_buy_amount_daily_eth(&pool).await?;
+        report_buy_amount_daily_other(&pool).await?;
+        report_unique_buyers_eth(&pool).await?;
+        report_unique_buyers_other(&pool).await?;
+        report_unique_sellers_eth(&pool).await?;
+        report_unique_sellers_other(&pool).await?;
         Ok(())
     }
-}

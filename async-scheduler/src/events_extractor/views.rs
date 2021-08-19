@@ -93,6 +93,12 @@ struct Record {
     id: i64,
 }
 
+#[derive(QueryableByName, PartialEq, Debug)]
+struct LastBlock {
+    #[sql_type = "BigInt"]
+    block_number: i64,
+}
+
 pub fn debug_limit(
     pool: &DbPool,
     table_name: &str,
@@ -114,16 +120,28 @@ pub async fn view_buy(
 ) -> Result<()> {
     println!("updating {}", buy_table);
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, buy_table, 10) { return Ok(()) }
+    let last_block = match diesel::sql_query(format!(
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
+        buy_table
+    ))
+    .get_result::<LastBlock>(&pool.get().context("get last block from approval table")?)
+    {
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            bail!(e);
+        },
+        Ok(e) => e.block_number,
+    };
+    println!("starting from block {:#?}", last_block);
 
-    // from last block in the report table, get swap table,
+    // from last block in the view table, get swap table,
     let swaps: Vec<Swap> = diesel::sql_query(format!(
         "SELECT id, pair_id, tx_from, tx_to, amount0_in, amount1_in, \
          amount0_out, amount1_out, stamp, block_number, tx_hash, log_index \
          FROM {} \
+         WHERE block_number >= {} \
          ORDER BY block_number ASC;",
-        swap_table
+        swap_table, last_block
     ))
         .get_results::<Swap>(&pool.get().context("execute sql query")?)
         .context("get events from table")?;
@@ -140,10 +158,10 @@ pub async fn view_buy(
         .get_result::<Pair>(&pool.get().context("execute sql query")?)
         .context("get pair from table")?;
 
-        #[cfg(target_os = "macos")]
-        if i > 50 {
-            return Ok(());
-        }
+        // #[cfg(target_os = "macos")]
+        // if i > 50 {
+        //     return Ok(());
+        // }
 
         if (pair.gtonToken0 && swap.amount1_in != 0.into() && swap.amount0_out != 0.into())
             || (!pair.gtonToken0 && swap.amount0_in != 0.into() && swap.amount1_out != 0.into())
@@ -199,10 +217,15 @@ pub async fn view_buy(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e),
             };
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+                swap.block_number, buy_table
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
     }
     Ok(())
@@ -216,16 +239,28 @@ pub async fn view_sell(
 ) -> Result<()> {
     println!("updating {}", sell_table);
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, sell_table, 10) { return Ok(()) }
+    let last_block = match diesel::sql_query(format!(
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
+        sell_table
+    ))
+    .get_result::<LastBlock>(&pool.get().context("get last block from approval table")?)
+    {
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            bail!(e);
+        },
+        Ok(e) => e.block_number,
+    };
+    println!("starting from block {:#?}", last_block);
 
     // from last block in the report table, get swap table,
     let swaps = diesel::sql_query(format!(
         "SELECT id, pair_id, tx_from, tx_to, amount0_in, amount1_in, \
          amount0_out, amount1_out, stamp, block_number, tx_hash, log_index \
          FROM {} \
+         WHERE block_number >= {} \
          ORDER BY block_number ASC;",
-        swap_table
+        swap_table, last_block
     ))
         .get_results::<Swap>(&pool.get().context("execute sql query")?)
         .context("get events from table")?;
@@ -242,10 +277,10 @@ pub async fn view_sell(
         .get_result::<Pair>(&pool.get().context("execute sql query")?)
         .context("get pair from table")?;
 
-        #[cfg(target_os = "macos")]
-        if i > 50 {
-            return Ok(());
-        }
+        // #[cfg(target_os = "macos")]
+        // if i > 50 {
+        //     return Ok(());
+        // }
 
         if (pair.gtonToken0 && swap.amount0_in != 0.into() && swap.amount1_out != 0.into())
             || (!pair.gtonToken0 && swap.amount1_in != 0.into() && swap.amount0_out != 0.into())
@@ -301,10 +336,15 @@ pub async fn view_sell(
             .execute(&pool.get().context("execute sql query")?);
             match result {
                 // ignore if already processed, panic otherwise
-                Ok(_) => continue,
-                Err(DatabaseError(UniqueViolation, _)) => continue,
+                Ok(_) => (),
+                Err(DatabaseError(UniqueViolation, _)) => (),
                 Err(e) => bail!(e),
             };
+            diesel::sql_query(format!(
+                "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+                swap.block_number, sell_table
+            ))
+                .execute(&pool.get().context("execute sql query")?);
         }
     }
     Ok(())
@@ -319,16 +359,28 @@ pub async fn view_lp_add(
 ) -> Result<()> {
     println!("updating {}", lp_add_table);
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, lp_add_table, 10) { return Ok(()) }
+    let last_block = match diesel::sql_query(format!(
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
+        lp_add_table
+    ))
+    .get_result::<LastBlock>(&pool.get().context("get last block from approval table")?)
+    {
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            bail!(e);
+        },
+        Ok(e) => e.block_number,
+    };
+    println!("starting from block {:#?}", last_block);
 
     // from last block in the report table, get mint table
     let mints = diesel::sql_query(format!(
         "SELECT id, pair_id, tx_from, tx_to, amount0, amount1, \
          stamp, block_number, tx_hash, log_index \
          FROM {} \
+         WHERE block_number >= {} \
          ORDER BY block_number ASC;",
-        mint_table
+        mint_table, last_block
     ))
         .get_results::<MintBurn>(&pool.get().context("execute sql query")?)
         .context("get events from table")?;
@@ -430,17 +482,17 @@ pub async fn view_lp_add(
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().context("execute sql query")?);
 
-        #[cfg(target_os = "macos")]
-        if i == 10 {
-            return Ok(());
-        }
-
         match result {
             // ignore if already processed, panic otherwise
-            Ok(_) => continue,
-            Err(DatabaseError(UniqueViolation, _)) => continue,
+            Ok(_) => (),
+            Err(DatabaseError(UniqueViolation, _)) => (),
             Err(e) => bail!(e),
         };
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            mint.block_number, lp_add_table
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
@@ -454,8 +506,19 @@ pub async fn view_lp_remove(
 ) -> Result<()> {
     println!("updating {}", lp_remove_table);
 
-    #[cfg(target_os = "macos")]
-    if debug_limit(pool, lp_remove_table, 10) { return Ok(()) }
+    let last_block = match diesel::sql_query(format!(
+        "SELECT block_number FROM blocks WHERE name_table='{}';",
+        lp_remove_table
+    ))
+    .get_result::<LastBlock>(&pool.get().context("get last block from approval table")?)
+    {
+        Err(e) => {
+            println!("failed to fetch last block: {}", e);
+            bail!(e);
+        },
+        Ok(e) => e.block_number,
+    };
+    println!("starting from block {:#?}", last_block);
 
     // from last block in the report table, get burn table
     let burns = diesel::sql_query(format!(
@@ -555,18 +618,17 @@ pub async fn view_lp_remove(
         .bind::<Text, _>(&event.tx_hash)
         .bind::<BigInt, _>(&event.log_index)
         .execute(&pool.get().context("execute sql query")?);
-
-        #[cfg(target_os = "macos")]
-        if i == 10 {
-            return Ok(());
-        }
-
         match result {
             // ignore if already processed, panic otherwise
-            Ok(_) => continue,
-            Err(DatabaseError(UniqueViolation, _)) => continue,
+            Ok(_) => (),
+            Err(DatabaseError(UniqueViolation, _)) => (),
             Err(e) => bail!(e),
         };
+        diesel::sql_query(format!(
+            "UPDATE blocks SET block_number={} WHERE name_table='{}'",
+            burn.block_number, lp_remove_table
+        ))
+            .execute(&pool.get().context("execute sql query")?);
     }
     Ok(())
 }
