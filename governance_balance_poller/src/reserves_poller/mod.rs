@@ -5,8 +5,6 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
 };
 use hex::ToHex;
-use std::str::FromStr;
-use bigdecimal::{BigDecimal, ToPrimitive};
 use tokio::time::{
     sleep,
   Duration,
@@ -193,6 +191,7 @@ impl PoolsExtractor {
         }
     }
     pub async fn get_pool_tvl(&self) -> (){
+        // TODO - rewrite with getter gton price
         loop {
         let pools: Vec<PoolData> = PoolData::get_pools(self.pool.clone());
         for pool in pools {
