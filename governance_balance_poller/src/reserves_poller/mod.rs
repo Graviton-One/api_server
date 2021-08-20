@@ -4,6 +4,7 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use hex::ToHex;
 use std::str::FromStr;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use tokio::time::{
@@ -87,20 +88,37 @@ async fn retrieve_token<T: web3::Transport>(
 }
 
 pub async fn get_token_price(chain: &String, address: &String) -> f64 {
-    let resp: Value = reqwest::get(String::from("https://api.coingecko.com/api/v3/simple/token_price/") + &chain + "?contract_addresses=" + &address + "&vc_currencies=usd")
+    let url = String::from("https://api.coingecko.com/api/v3/simple/token_price/") + &chain + "?contract_addresses=" + &address + "&vs_currencies=usd";
+    println!("{}", url);
+    println!("{}", address);
+    let resp: Value = reqwest::get(url)
     .await
     .unwrap()
     .json::<Value>()
     .await
     .unwrap();
-    let v = resp[address]["usd"].as_f64();
+    let v = resp[address.to_lowercase()]["usd"].as_f64();
     // we need to handle bad response from coingecko
     if v.is_none() {
+        println!("set to 1");
         1 as f64
     } else {
         v.unwrap()
     }
     
+}
+
+pub async fn get_decimals(address: &Address, web3: Web3Instance) -> i64 {
+    let contract = Contract::from_json(
+        web3.eth(),
+        *address,
+        include_bytes!("./abi/erc20.json"),
+    ).expect("error contract creating");
+    contract
+        .query("decimals", (), None, Options::default(), None).await.unwrap()
+}
+pub fn prepare_reserve(reserve: U256, dec: i64) -> f64 {
+    reserve.to_f64_lossy() / 10_f64.powf(dec as f64)
 }
 
 pub async fn get_pool_reserves(
@@ -128,6 +146,10 @@ pub async fn get_pool_reserves(
     };
 
     Ok(pool_stats)
+}
+
+fn hex_to_string<T: ToHex>(h: T) -> String {
+    "0x".to_owned() + &h.encode_hex::<String>()
 }
 
 pub struct PoolsExtractor {
@@ -163,8 +185,9 @@ impl PoolsExtractor {
             .query("balanceOf",  query_address, None, Options::default(), None)
             .await
             .expect("error getting gton reserves");
-            let reserves = BigDecimal::from_str(&reserves.to_string()).unwrap();
-            PoolData::set_gton_reserves(pool.id, reserves.to_f64().unwrap(), self.pool.clone());
+            // let reserves = BigDecimal::from_str(&reserves.to_string()).unwrap();
+            let reserves = reserves as f64 / (10_f64.powf(18.0));
+            PoolData::set_gton_reserves(pool.id, reserves, self.pool.clone());
             }
         sleep(Duration::from_secs((15) as u64)).await;
         }
@@ -174,10 +197,15 @@ impl PoolsExtractor {
         let pools: Vec<PoolData> = PoolData::get_pools(self.pool.clone());
         for pool in pools {
             let web3 = create_instance(&pool.node_url);
-            let reserves = get_pool_reserves(&pool.pool_address, web3).await.expect("Error getting pool reserves");
-            let price_a: f64 = get_token_price(&pool.coingecko_id, &reserves.token_a.to_string()).await;
-            let price_b: f64 = get_token_price(&pool.coingecko_id, &reserves.token_b.to_string()).await;
-            let tvl = price_a * reserves.token_a_reserves.to_f64_lossy() + price_b * reserves.token_b_reserves.to_f64_lossy();
+            let reserves = get_pool_reserves(&pool.pool_address, web3.clone()).await.expect("Error getting pool reserves");
+            println!("{}", String::from(hex_to_string(reserves.token_a)));
+            let price_a: f64 = get_token_price(&pool.coingecko_id, &hex_to_string(reserves.token_a)).await;
+            let price_b: f64 = get_token_price(&pool.coingecko_id, &hex_to_string(reserves.token_b)).await;
+            let dec_a = get_decimals(&reserves.token_a, web3.clone()).await;
+            let dec_b = get_decimals(&reserves.token_b, web3.clone()).await;
+            let reserve_a = prepare_reserve(reserves.token_a_reserves, dec_a);
+            let reserve_b = prepare_reserve(reserves.token_b_reserves, dec_b);
+            let tvl = price_a * reserve_a + price_b * reserve_b;
             PoolData::set_tvl(pool.id, tvl,self.pool.clone());
         }
         sleep(Duration::from_secs((15) as u64)).await;
