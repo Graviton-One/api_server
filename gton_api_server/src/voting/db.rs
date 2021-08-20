@@ -1,5 +1,8 @@
 use crate::schema::votings;
-use diesel::prelude::*;
+use diesel::{
+    sql_types::*,
+    prelude::*
+};
 use actix_web_dev::error::{
     Result,
 };
@@ -33,18 +36,27 @@ pub struct UpdateVoting {
     active: Option<bool>
 }
 
-#[derive(Insertable,Serialize,Deserialize,Queryable,Clone,Debug)]
+#[derive(Insertable,Serialize,QueryableByName,Deserialize,Queryable,Clone,Debug,AsExpression)]
 #[table_name = "votings"]
 pub struct VotingInstance {
+    #[sql_type="Integer"]
     id: i32,
+    #[sql_type="Varchar"]
     title: String,
+    #[sql_type="Varchar"]
     date_from: String,
+    #[sql_type="Varchar"]
     date_to: String,
+    #[sql_type="Varchar"]
     description: String,
+    #[sql_type="Varchar"]
     details: String,
+    #[sql_type="Varchar"]
     proposer: String,
+    #[sql_type="Varchar"]
     forum_link: String,
-    active: bool,
+    #[sql_type="Bool"]
+    active: Bool,
 }
 
 impl VotingInstance {

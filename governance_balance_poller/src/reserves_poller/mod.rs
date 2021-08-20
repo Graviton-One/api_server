@@ -4,6 +4,8 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use std::str::FromStr;
+use bigdecimal::{BigDecimal, ToPrimitive};
 use tokio::time::{
     sleep,
   Duration,
@@ -53,7 +55,7 @@ pub fn create_instance(rpc_url: &str) -> Web3Instance {
 
 impl PoolData {
     fn get_pools(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<PoolData> {
-        diesel::sql_query("SELECT c.id, c.gton_address, c.coingecko_id, c.node_url, p.pool_address 
+        diesel::sql_query("SELECT p.id, c.gton_address, c.coingecko_id, c.node_url, p.pool_address 
         FROM chains AS c 
         LEFT JOIN dexes AS d ON d.chain_id = c.id 
         LEFT JOIN pools AS p ON d.id = p.dex_id;").get_results::<PoolData>(&conn.get().unwrap())
@@ -91,7 +93,14 @@ pub async fn get_token_price(chain: &String, address: &String) -> f64 {
     .json::<Value>()
     .await
     .unwrap();
-    resp[address]["usd"].as_f64().unwrap()
+    let v = resp[address]["usd"].as_f64();
+    // we need to handle bad response from coingecko
+    if v.is_none() {
+        1 as f64
+    } else {
+        v.unwrap()
+    }
+    
 }
 
 pub async fn get_pool_reserves(
@@ -154,7 +163,8 @@ impl PoolsExtractor {
             .query("balanceOf",  query_address, None, Options::default(), None)
             .await
             .expect("error getting gton reserves");
-            PoolData::set_gton_reserves(pool.id, (reserves/10^18) as f64, self.pool.clone());
+            let reserves = BigDecimal::from_str(&reserves.to_string()).unwrap();
+            PoolData::set_gton_reserves(pool.id, reserves.to_f64().unwrap(), self.pool.clone());
             }
         sleep(Duration::from_secs((15) as u64)).await;
         }
