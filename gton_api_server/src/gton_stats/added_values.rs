@@ -36,6 +36,8 @@ pub struct UsersValues {
     pub user_id: i32,
     #[sql_type="Numeric"]
     pub amount: BigDecimal,
+    #[sql_type="Varchar"]
+    pub user_external_address: String,
 }
 
 impl UsersValues {
