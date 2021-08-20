@@ -181,12 +181,12 @@ impl PoolsExtractor {
             let contract = Contract::from_json(web3.eth(), contract_address, include_bytes!("abi/erc20.json"))
             .expect("create erc20 contract");
             let query_address: Address = pool.pool_address.parse().unwrap();
-            let reserves: i64 = contract
+            let reserves: U256 = contract
             .query("balanceOf",  query_address, None, Options::default(), None)
             .await
             .expect("error getting gton reserves");
             // let reserves = BigDecimal::from_str(&reserves.to_string()).unwrap();
-            let reserves = reserves as f64 / (10_f64.powf(18.0));
+            let reserves = prepare_reserve(reserves, 18);
             PoolData::set_gton_reserves(pool.id, reserves, self.pool.clone());
             }
         sleep(Duration::from_secs((15) as u64)).await;
