@@ -836,25 +836,6 @@ table! {
 }
 
 table! {
-    events_univ2_swap_plg_sushi (id) {
-        id -> Int8,
-        tx_from -> Text,
-        tx_to -> Text,
-        pair_id -> Nullable<Int8>,
-        sender -> Text,
-        receiver -> Text,
-        amount0_in -> Numeric,
-        amount1_in -> Numeric,
-        amount0_out -> Numeric,
-        amount1_out -> Numeric,
-        stamp -> Timestamp,
-        block_number -> Int8,
-        tx_hash -> Text,
-        log_index -> Int8,
-    }
-}
-
-table! {
     events_univ2_swap_spirit_bk (id) {
         id -> Int8,
         pair -> Nullable<Int8>,
@@ -937,22 +918,6 @@ table! {
 
 table! {
     events_univ2_transfer_plg_quick (id) {
-        id -> Int8,
-        tx_from -> Text,
-        tx_to -> Text,
-        pair_id -> Nullable<Int8>,
-        sender -> Text,
-        receiver -> Text,
-        amount -> Numeric,
-        stamp -> Timestamp,
-        block_number -> Int8,
-        tx_hash -> Text,
-        log_index -> Int8,
-    }
-}
-
-table! {
-    events_univ2_transfer_plg_sushi (id) {
         id -> Int8,
         tx_from -> Text,
         tx_to -> Text,
@@ -1158,6 +1123,14 @@ table! {
 }
 
 table! {
+    univ2_buy_amount_daily_other (id) {
+        id -> Int8,
+        stamp -> Nullable<Date>,
+        sum -> Nullable<Numeric>,
+    }
+}
+
+table! {
     univ2_buy_bsc_pancake (id) {
         id -> Int8,
         swap_id -> Nullable<Int8>,
@@ -1260,6 +1233,14 @@ table! {
         day -> Nullable<Date>,
         users -> Nullable<Int8>,
         id -> Int8,
+    }
+}
+
+table! {
+    univ2_buyers_running_count_other (id) {
+        id -> Int8,
+        day -> Nullable<Date>,
+        users -> Nullable<Int8>,
     }
 }
 
@@ -1432,6 +1413,14 @@ table! {
 }
 
 table! {
+    univ2_sell_amount_daily_other (id) {
+        id -> Int8,
+        stamp -> Nullable<Date>,
+        sum -> Nullable<Numeric>,
+    }
+}
+
+table! {
     univ2_sell_bsc_pancake (id) {
         id -> Int8,
         swap_id -> Nullable<Int8>,
@@ -1473,14 +1462,6 @@ table! {
         stamp -> Timestamp,
         tx_hash -> Text,
         log_index -> Int8,
-    }
-}
-
-table! {
-    univ2_sell_ftm_amount_daily_eth (id) {
-        stamp -> Nullable<Date>,
-        sum -> Nullable<Numeric>,
-        id -> Int8,
     }
 }
 
@@ -1538,12 +1519,21 @@ table! {
 }
 
 table! {
+    univ2_sellers_running_count_other (id) {
+        id -> Int8,
+        day -> Nullable<Date>,
+        users -> Nullable<Int8>,
+    }
+}
+
+table! {
     users (id) {
         id -> Int4,
         address -> Varchar,
         twitter_account -> Nullable<Varchar>,
         external_address -> Nullable<Varchar>,
         chain_type -> Nullable<Varchar>,
+        governance_balance -> Numeric,
     }
 }
 
@@ -1575,7 +1565,7 @@ table! {
         details -> Varchar,
         proposer -> Varchar,
         forum_link -> Varchar,
-        active -> Nullable<Bool>,
+        active -> Bool,
     }
 }
 
@@ -1600,14 +1590,12 @@ joinable!(events_univ2_swap_eth_sushi -> events_univ2_pair_created_eth_sushi (pa
 joinable!(events_univ2_swap_ftm_spirit -> events_univ2_pair_created_ftm_spirit (pair_id));
 joinable!(events_univ2_swap_ftm_spooky -> events_univ2_pair_created_ftm_spooky (pair_id));
 joinable!(events_univ2_swap_plg_quick -> events_univ2_pair_created_plg_quick (pair_id));
-joinable!(events_univ2_swap_plg_sushi -> events_univ2_pair_created_plg_sushi (pair_id));
 joinable!(events_univ2_swap_spirit_bk -> events_univ2_pair_created_spirit_bk (pair));
 joinable!(events_univ2_transfer_bsc_pancake -> events_univ2_pair_created_bsc_pancake (pair_id));
 joinable!(events_univ2_transfer_eth_sushi -> events_univ2_pair_created_eth_sushi (pair_id));
 joinable!(events_univ2_transfer_ftm_spirit -> events_univ2_pair_created_ftm_spirit (pair_id));
 joinable!(events_univ2_transfer_ftm_spooky -> events_univ2_pair_created_ftm_spooky (pair_id));
 joinable!(events_univ2_transfer_plg_quick -> events_univ2_pair_created_plg_quick (pair_id));
-joinable!(events_univ2_transfer_plg_sushi -> events_univ2_pair_created_plg_sushi (pair_id));
 joinable!(gton_pools -> gton_pools_dexes (dex_id));
 joinable!(gton_pools_dexes -> gton_pools_chains (chain_id));
 joinable!(total_values_for_users -> users (user_id));
@@ -1712,14 +1700,12 @@ allow_tables_to_appear_in_same_query!(
     events_univ2_swap_ftm_spirit,
     events_univ2_swap_ftm_spooky,
     events_univ2_swap_plg_quick,
-    events_univ2_swap_plg_sushi,
     events_univ2_swap_spirit_bk,
     events_univ2_transfer_bsc_pancake,
     events_univ2_transfer_eth_sushi,
     events_univ2_transfer_ftm_spirit,
     events_univ2_transfer_ftm_spooky,
     events_univ2_transfer_plg_quick,
-    events_univ2_transfer_plg_sushi,
     forum_active_users,
     forum_report_daily_engaged_users,
     forum_report_dau_by_mau,
@@ -1742,6 +1728,7 @@ allow_tables_to_appear_in_same_query!(
     total_stakers,
     total_values_for_users,
     univ2_buy_amount_daily_eth,
+    univ2_buy_amount_daily_other,
     univ2_buy_bsc_pancake,
     univ2_buy_eth_sushi,
     univ2_buy_eth_sushi_bk,
@@ -1750,6 +1737,7 @@ allow_tables_to_appear_in_same_query!(
     univ2_buy_ftm_spooky,
     univ2_buy_plg_quick,
     univ2_buyers_running_count_eth,
+    univ2_buyers_running_count_other,
     univ2_lp_add_bsc_pancake,
     univ2_lp_add_eth_sushi,
     univ2_lp_add_ftm_spirit,
@@ -1761,14 +1749,15 @@ allow_tables_to_appear_in_same_query!(
     univ2_lp_remove_ftm_spooky,
     univ2_lp_remove_plg_quick,
     univ2_sell_amount_daily_eth,
+    univ2_sell_amount_daily_other,
     univ2_sell_bsc_pancake,
     univ2_sell_eth_sushi,
     univ2_sell_eth_sushi_bk,
-    univ2_sell_ftm_amount_daily_eth,
     univ2_sell_ftm_spirit,
     univ2_sell_ftm_spooky,
     univ2_sell_plg_quick,
     univ2_sellers_running_count_eth,
+    univ2_sellers_running_count_other,
     users,
     value_senders,
     voters,
