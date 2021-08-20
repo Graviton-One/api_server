@@ -24,30 +24,30 @@ services:
   #     - ./keeper_extractor/migrations:/keeper_extractor/migrations
   #   networks:
   #     - app-network
-  volume_poller:
-    image: badconfig/keeper_extractor 
-    container_name: volume_poller
+  async-scheduler:
+    image: googrand/scheduler 
+    container_name: scheduler
     restart: unless-stopped
     tty: true
     env_file:
-      - ./volume_poller/.env
+      - ./scheduler/.env
     environment:
       - RUST_BACKTRACE=1
     networks:
       - app-network
   app:
-    image: badconfig/gton_api_server
+    image: googrand/api_server
     container_name: app_api_server
     restart: unless-stopped
     tty: true
     ports:
       - "8088:8088"
     env_file:
-      - ./gton_api_server/.env
+      - ./api_server/.env
     environment:
       - RUST_BACKTRACE=1
     volumes:
-      - ./gton_api_server/migrations:/gton_api_server/migrations
+      - ./api_server/migrations:/api_server/migrations
     networks:
       - app-network
   # poller:

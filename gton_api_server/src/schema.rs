@@ -1569,6 +1569,40 @@ table! {
     }
 }
 
+table! {
+    chains (id) {
+        id -> BigInt,
+        coingecko_id -> Varchar,
+        chain_name -> Varchar,
+        chain_icon -> Varchar,
+        chain_short -> Varchar,
+        network_id -> Int4,
+        explorer -> Varchar,
+        node_url -> Varchar,
+        token -> Varchar,
+        gton_address -> Varchar,
+    }
+}
+table! {
+    dexes (id) {
+        id -> BigInt,
+        chain_id -> BigInt,
+        name -> Varchar,
+    }
+}
+table! {
+    pools (id) {
+        id -> BigInt,
+        dex_id -> BigInt,
+        name -> Varchar,
+        pool_address -> Varchar,
+        swap_link -> Varchar,
+        pair_link -> Varchar,
+        gton_reserves -> Float8,
+        tvl -> Float8,
+    }
+}
+
 joinable!(achievements_to_users -> achievements (achievement_id));
 joinable!(achievements_to_users -> users (user_id));
 joinable!(events_univ2_burn_bsc_pancake -> events_univ2_pair_created_bsc_pancake (pair_id));
@@ -1600,10 +1634,6 @@ joinable!(gton_pools -> gton_pools_dexes (dex_id));
 joinable!(gton_pools_dexes -> gton_pools_chains (chain_id));
 joinable!(total_values_for_users -> users (user_id));
 joinable!(total_values_for_users -> value_senders (sender_id));
-joinable!(univ2_buy_bsc_pancake -> events_univ2_pair_created_bsc_pancake (pair_id));
-joinable!(univ2_buy_bsc_pancake -> events_univ2_swap_bsc_pancake (swap_id));
-joinable!(univ2_buy_eth_sushi -> events_univ2_pair_created_eth_sushi (pair_id));
-joinable!(univ2_buy_eth_sushi -> events_univ2_swap_eth_sushi (swap_id));
 joinable!(univ2_buy_eth_sushi_bk -> events_univ2_pair_created_eth_sushi (pair_id));
 joinable!(univ2_buy_eth_sushi_bk -> events_univ2_swap_eth_sushi (swap_id));
 joinable!(univ2_buy_ftm_spirit -> events_univ2_pair_created_ftm_spirit (pair_id));
@@ -1648,7 +1678,6 @@ joinable!(univ2_sell_plg_quick -> events_univ2_swap_plg_quick (swap_id));
 allow_tables_to_appear_in_same_query!(
     achievements,
     achievements_to_users,
-    blocks,
     events_anyv4_swapin_bsc,
     events_anyv4_swapin_ftm,
     events_anyv4_swapin_ftm_bk,
