@@ -24,7 +24,7 @@ use ethcontract::web3::{
 
 pub mod db;
 use self::db::{
-    PoolAddressess
+    PoolAddressess, SinglePool
 };
 
 pub type Web3Instance = web3::Web3<ethcontract::Http>;
@@ -40,6 +40,10 @@ pub struct TransactionExtractor {
     pool: Arc<Pool<ConnectionManager<PgConnection>>>,
 }
 
+pub async fn extract_pool_transactions(web3: &Web3Instance, pool: SinglePool) -> () {
+    
+}
+
 impl TransactionExtractor {
     pub fn new() -> Self {
         let manager = ConnectionManager::<PgConnection>::new(
@@ -50,6 +54,15 @@ impl TransactionExtractor {
         let pool = std::sync::Arc::new(pool);
         TransactionExtractor {
             pool,
+        }
+    }
+    pub fn process_pools(&self) -> {
+        let data = PoolAddressess::get_pool_addresses(self.pool.clone());
+        for chain in data {
+            let web3 = create_instance(chain.node_url);
+            for pool in chain.pools {
+                extract_pool_transactions(&web3, pool);
+            }
         }
     }
 }
