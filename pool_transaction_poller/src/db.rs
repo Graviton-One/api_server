@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use diesel::{
     sql_types::*,
     prelude::*,
@@ -10,6 +12,7 @@ pub struct SinglePool {
     pool_address: String,
 }
 
+#[derive(Default, Debug, Clone, QueryableByName)]
 pub struct PoolAddressess {
     node_url: String,
     pools: Vec<SinglePool>

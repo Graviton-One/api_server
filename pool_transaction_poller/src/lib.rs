@@ -16,7 +16,7 @@ use crate::schema::{
     pools,
 };
 
-use web3::{
+use ethcontract::web3::{
     self,
     contract::{Contract, Options},
     types::*,
@@ -48,7 +48,7 @@ impl TransactionExtractor {
         let pool = Pool::builder().build(manager).expect("pool build");
 
         let pool = std::sync::Arc::new(pool);
-        PoolsExtractor {
+        TransactionExtractor {
             pool,
         }
     }
