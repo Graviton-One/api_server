@@ -1,7 +1,7 @@
 FROM rustlang/rust:nightly-buster as builder
 
-RUN USER=root cargo new --bin gton_api_server
-WORKDIR /gton_api_server
+RUN USER=root cargo new --bin governance_poller
+WORKDIR /governance_poller
 
 # copy over your manifests
 COPY ./Cargo.toml ./Cargo.toml
@@ -15,7 +15,7 @@ COPY ./src ./src
 #COPY ./contracts ./contracts
 #COPY . .
 
-RUN cargo build --release
+RUN cargo build --release --bin reserve_poller
 
 FROM debian:buster-slim
 
@@ -28,9 +28,9 @@ RUN apt-get update && \
         --no-install-recommends
 RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /gton_api_server/target/release/gton_api_server /gton_api_server/gton_api_server
-WORKDIR /gton_api_server/
+COPY --from=builder /governance_poller/target/release/reserve_poller /governance_poller/reserve_poller
+WORKDIR /governance_poller/
 EXPOSE 8088
 
 
-CMD ["/gton_api_server/gton_api_server"]
+CMD ["/governance_poller/reserve_poller"]

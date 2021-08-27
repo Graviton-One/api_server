@@ -34,16 +34,21 @@ pub struct Achievements {
     icon: String,
     #[sql_type="Varchar"]
     external_address: String,
+    #[sql_type="Varchar"]
+    chain_type: String,
 }
 
 impl Achievements {
     pub async fn get(
         address: &str,
+        chain: &str,
         conn: &PgConnection,
     ) -> Result<Vec<Self>> {
         println!("{}",address);
-        diesel::sql_query("SELECT * FROM user_achievements WHERE external_address=lower($1);")
+        diesel::sql_query("SELECT * FROM user_achievements WHERE 
+            external_address=lower($1) and chain_type=upper($2);")
             .bind::<diesel::sql_types::Varchar,_>(address)
+            .bind::<diesel::sql_types::Varchar,_>(chain)
             .get_results::<Achievements>(conn)
             .map_err(|e|e.into())
     }

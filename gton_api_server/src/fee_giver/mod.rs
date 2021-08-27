@@ -1,6 +1,7 @@
 pub mod db;
 pub mod routes;
 
+use ethcontract::web3;
 use web3::contract::{Contract, Options};
 use ethcontract::prelude::*;
 use super::ChainConfig;

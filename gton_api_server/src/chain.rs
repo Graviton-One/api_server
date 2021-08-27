@@ -1,4 +1,5 @@
 use ethcontract;
+use ethcontract::web3;
 
 pub type Web3Instance = web3::Web3<ethcontract::Http>;
 
