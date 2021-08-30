@@ -37,16 +37,20 @@ pub struct UsersValues {
     #[sql_type="Numeric"]
     pub amount: BigDecimal,
     #[sql_type="Varchar"]
-    pub user_external_address: String,
+    pub external_address: String,
+    #[sql_type="Varchar"]
+    pub chain_type: String,
 }
 
 impl UsersValues {
     pub async fn get( 
         address: &str, 
+        chain: &str, 
         conn: &PgConnection,
     ) -> Result<Vec<UsersValuesSerde>> {
-        let r = diesel::sql_query("SELECT * FROM get_users_values($1);")
+        let r = diesel::sql_query("SELECT * FROM get_users_values($1,$2);")
             .bind::<diesel::sql_types::Varchar,_>(address)
+            .bind::<diesel::sql_types::Varchar,_>(chain)
             .get_results::<UsersValues>(conn)?;
         Ok(r
             .into_iter()
@@ -55,7 +59,7 @@ impl UsersValues {
                     sender_address: el.sender_address,
                     name: el.name,
                     sender_id: el.sender_id,
-                    user_address: el.user_address,
+                    user_address: el.external_address,
                     user_id: el.user_id,
                     amount: el.amount.to_string()
                 }

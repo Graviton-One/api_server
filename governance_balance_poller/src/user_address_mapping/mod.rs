@@ -98,12 +98,13 @@ impl Poller {
                     .filter(users::id.eq(instance.id))
                     .set((
                         users::external_address
-                        .eq(H160::from_slice(&data.1.clone()).to_string()),
+                        .eq(format!("0x{}",hex::encode(&data.1.clone()))),
                         users::chain_type.eq(data.0.clone()),
                     ))
                     .execute(&self.pool.get().unwrap())
                     .unwrap();
-                println!("inserted for id: {} data: {:?}",instance.id,data);
+                println!("inserted for id: {} data: {}",instance.id,
+                    format!("0x{}",hex::encode(&data.1.clone())));
             }
             sleep(Duration::from_secs((15) as u64)).await;
         }

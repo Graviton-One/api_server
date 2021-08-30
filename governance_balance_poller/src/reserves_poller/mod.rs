@@ -67,7 +67,11 @@ impl PoolData {
         .execute(&conn.get().unwrap())
         .unwrap();
     }
-    fn set_gton_reserves(id: i64, reserves: f64, conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> () {
+    fn set_gton_reserves(
+        id: i64, 
+        reserves: f64, 
+        conn: Arc<Pool<ConnectionManager<PgConnection>>>
+    ) -> () {
         diesel::update(pools::table)
         .filter(pools::id.eq(id))
         .set(pools::gton_reserves.eq(reserves))
@@ -86,7 +90,8 @@ async fn retrieve_token<T: web3::Transport>(
 }
 
 pub async fn get_token_price(chain: &String, address: &String) -> f64 {
-    let url = String::from("https://api.coingecko.com/api/v3/simple/token_price/") + &chain + "?contract_addresses=" + &address + "&vs_currencies=usd";
+    let url = String::from("https://api.coingecko.com/api/v3/simple/token_price/") + 
+        &chain + "?contract_addresses=" + &address + "&vs_currencies=usd";
     println!("{}", url);
     println!("{}", address);
     let resp: Value = reqwest::get(url)

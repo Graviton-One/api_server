@@ -1,4 +1,7 @@
-use crate::schema::votings;
+use crate::schema::{
+    refferal_offers,
+    votings
+};
 use diesel::{
     sql_types::*,
     prelude::*
@@ -56,7 +59,7 @@ pub struct VotingInstance {
     #[sql_type="Varchar"]
     forum_link: String,
     #[sql_type="Bool"]
-    active: Bool,
+    active: bool,
 }
 
 impl VotingInstance {
@@ -109,3 +112,31 @@ impl VotingInstance {
     }
 }
 
+use uuid::Uuid;
+
+#[derive(Queryable,Clone,Debug)]
+pub struct PoolsOfferTable {
+    id: i64,
+    pool_address: String,
+    signature: String,
+    secure_id: Uuid,
+}
+
+#[derive(Deserialize,Insertable)]
+#[table_name="refferal_offers"]
+pub struct PoolOffer {
+    pool_address: String,
+    signature: String,
+}
+
+impl PoolOffer {
+    pub async fn load_secure_id(
+        &self,
+        conn: &PgConnection
+    ) -> Result<String> {
+        let d: PoolsOfferTable = diesel::insert_into(refferal_offers::table)
+            .values(self)
+            .get_result(conn)?;
+        Ok(d.secure_id.to_string())
+    }
+}

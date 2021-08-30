@@ -7,7 +7,6 @@ use gton_api_server::{
 };
 
 use serde::{Serialize,Deserialize};
-use diesel_migrations::run_pending_migrations;
 use gton_api_server::fee_giver::routes::{
     check_vote,
     get_vote_count,
@@ -42,11 +41,6 @@ async fn main() -> std::io::Result<()> {
         .build(manager)
         .expect("Failed to create pool.");
     let config = ChainConfig::from_env();
-
-    // match run_pending_migrations(&pool.get().unwrap()) {
-    //     Ok(_) => print!("migration success\n"),
-    //     Err(e)=> print!("migration error: {}\n",&e),
-    // };
 
     // Start HTTP server
     use std::sync::Arc;

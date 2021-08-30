@@ -12,10 +12,10 @@ use crate::gton_stats::db::{
     GtonPrice,
     UsersValues,
     TotalValues,
+    TvlData,
 };
 pub fn users_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/users")
-        .route("/achievements", web::get().to(get_achievements))
         .route("/portfolio", web::get().to(get_portfolio))
     );
 }
@@ -23,6 +23,7 @@ pub fn users_routes(cfg: &mut web::ServiceConfig) {
 #[derive(Serialize,Deserialize)]
 pub struct UserAddress {
     address: String,
+    chain: String,
 }
 
 pub async fn get_portfolio(
@@ -30,9 +31,15 @@ pub async fn get_portfolio(
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let conn = pool.get()?;
-    let ach = Achievements::get(data.address.as_str(), &conn).await?;
+    let ach = Achievements::get(
+        data.address.as_str(),
+        data.chain.as_str(),
+        &conn).await?;
     let totals = TotalValues::get(&conn).await?;
-    let split_by_sources = UsersValues::get(data.address.as_str(), &conn).await?;
+    let split_by_sources = UsersValues::get(
+        data.address.as_str(), 
+        data.chain.as_str(),
+        &conn).await?;
     Ok(HttpResponse::Ok().json(json!(
                 {
                     "achievements": ach,
@@ -42,15 +49,5 @@ pub async fn get_portfolio(
     )))
 }
 
-
-
-pub async fn get_achievements (
-    data: Query<UserAddress>,
-    pool: web::Data<DbPool>,
-) -> Result<HttpResponse> {
-    let conn = pool.get()?;
-    let r = Achievements::get(data.address.as_str(), &conn).await?;
-    Ok(HttpResponse::Ok().json(r))
-}
 
 
