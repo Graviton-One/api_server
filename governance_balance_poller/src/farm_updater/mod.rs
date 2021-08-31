@@ -125,13 +125,12 @@ impl FarmsData {
         LEFT JOIN pools AS p ON d.id = p.dex_id;").get_results::<FarmsData>(&conn.get().unwrap())
         .unwrap()
     }
-    fn get_gton_price(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> f64 {
+    fn get_gton_price(conn: &PgConnection) -> f64 {
          gton_price::table
             .select(gton_price::price)
             .order_by(gton_price::market_time.asc())
             .limit(1)
-            .get_result::<f64>(&conn)
-            .map_err(|e|e.into())
+            .get_result::<f64>(conn)
             .unwrap()
     }
     fn update_farm_data(
@@ -148,6 +147,7 @@ impl FarmsData {
 
 pub struct FarmUpdater {
     pool: Arc<Pool<ConnectionManager<PgConnection>>>,
+    pgconn: Pool<ConnectionManager<PgConnection>>,
     lp_keeper: Address
 }
 
@@ -160,10 +160,11 @@ impl FarmUpdater {
         let manager = ConnectionManager::<PgConnection>::new(
             std::env::var("DATABASE_URL").expect("missing db url"),
         );
-        let pool = Pool::builder().build(manager).expect("pool build");
+        let pgconn = Pool::builder().build(manager).expect("pool build");
 
-        let pool = std::sync::Arc::new(pool);
+        let pool = std::sync::Arc::new(pgconn);
         FarmUpdater {
+            pgconn,
             pool,
             lp_keeper: string_to_h160(String::from("0xA0447eE66E44BF567FF9287107B0c3D2F88efD93"))
         }
@@ -171,8 +172,8 @@ impl FarmUpdater {
     pub async fn update_farms(&self) -> () {
         let ftm_web3 = create_instance("https://rpcapi.fantom.network");
         loop {
-        let farms: Vec<FarmsData> = FarmsData::get_farms(self.pool.clone());
-        let gton_price = FarmsData::get_gton_price(self.pool.clone())
+        let farms: Vec<FarmsData> = FarmsData::get_farms(self.pgconn.clone());
+        let gton_price = FarmsData::get_gton_price(self.pool.clone());
         for farm in farms {
             let web3 = create_instance(&farm.node_url);
             let locked = get_locked_amount(&web3, string_to_h160(farm.pool_address), string_to_h160(farm.lock_address)).await;
