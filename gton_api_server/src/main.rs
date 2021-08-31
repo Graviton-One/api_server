@@ -1,4 +1,4 @@
-use actix_web::{App, HttpRequest, HttpServer, Responder, web, HttpResponse};
+use actix_web::{App, HttpServer, web,};
 
 use diesel::PgConnection;
 use diesel::r2d2::ConnectionManager;
