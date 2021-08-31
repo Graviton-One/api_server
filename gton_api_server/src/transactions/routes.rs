@@ -16,11 +16,12 @@ pub fn txn_routes(cfg: &mut web::ServiceConfig) {
     );
 }
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
 enum TxnType {
-    All = 0,
-    Swap = 1,
-    Remove = 2,
-    Add = 3
+    All,
+    Swap,
+    Remove,
+    Add
 }
 
 #[derive(Serialize,Deserialize)]

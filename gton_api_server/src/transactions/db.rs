@@ -2,16 +2,16 @@ use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
 };
+use bigdecimal::BigDecimal;
 use serde::{
     Serialize,
     Deserialize,
 };
 use chrono::NaiveDateTime;
-use diesel::sql_types::BigInt;
 
 use diesel::sql_types::{
-    Integer,
     Varchar,
+    Numeric,
     Timestamp,
     Text,
 };
@@ -95,10 +95,8 @@ use diesel::sql_types::{
 
 #[derive(Serialize,Deserialize,QueryableByName, Queryable, Clone,Debug)]
 pub struct Transaction {
-    #[sql_type="Integer"]
-    id: i32,
-    #[sql_type="BigInt"]
-    amount: i64,
+    #[sql_type="Numeric"]
+    amount: BigDecimal,
     #[sql_type="Text"]
     tx_hash: String,
     #[sql_type="Varchar"]
@@ -239,7 +237,7 @@ impl Transaction {
         LEFT JOIN events_univ2_pair_created_eth_sushi AS p4 on t4.pair_id = p4.id
         UNION SELECT t5.tx_hash, t5.stamp, t5.amount_gton_out as amount, p5.address FROM univ2_buy_plg_quick AS t5
         LEFT JOIN events_univ2_pair_created_eth_sushi AS p5 on t5.pair_id = p5.id
-        UNION SELECT t6.tx_hash, t6.stamp, t6.amount_gton_in as amount, p7.address FROM univ2_sell_bsc_pancake AS t6 
+        UNION SELECT t6.tx_hash, t6.stamp, t6.amount_gton_in as amount, p6.address FROM univ2_sell_bsc_pancake AS t6 
         LEFT JOIN events_univ2_pair_created_bsc_pancake AS p6 on t6.pair_id = p6.id
         UNION SELECT t7.tx_hash, t7.stamp, t7.amount_gton_in as amount, p7.address FROM univ2_sell_eth_sushi AS t7
         LEFT JOIN events_univ2_pair_created_eth_sushi AS p7 on t7.pair_id = p7.id
@@ -250,7 +248,7 @@ impl Transaction {
         UNION SELECT t10.tx_hash, t10.stamp, t10.amount_gton_in as amount, p10.address FROM univ2_sell_plg_quick AS t10
         LEFT JOIN events_univ2_pair_created_eth_sushi AS p10 on t10.pair_id = p10.id
         ORDER BY stamp DESC
-        LIMIT ? OFFSET ? ;")
+        LIMIT ($1) OFFSET ($2);")
         .bind::<diesel::sql_types::BigInt,_>(limit)
         .bind::<diesel::sql_types::BigInt,_>(offset)
         .get_results::<Transaction>(conn)
