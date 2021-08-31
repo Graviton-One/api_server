@@ -1,18 +1,16 @@
-use std::error::Error;
+use crate::schema::gton_price;
 use diesel::{
     sql_types::*,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
-use hex::ToHex;
 use tokio::time::{
     sleep,
   Duration,
 };
 use std::sync::Arc;
-use serde_json::Value;
 use crate::schema::{
-    pools,
+    farms,
 };
 
 use ethcontract::web3::{
@@ -76,12 +74,18 @@ pub async fn get_locked_amount(web3: &Web3Instance, pool: Address, lock: Address
         prepare_amount(res, 18)
 }
 
-pub fn calc_lp_price(tvl: f64, total_supply: i64) -> f64 {
-    tvl / total_supply as f64
+pub fn calc_lp_price(tvl: f64, total_supply: f64) -> f64 {
+    tvl / total_supply
 }
 
 pub fn calc_lp_liquidity(lp_price: f64, lp_locked: f64) -> f64 {
     lp_price * lp_locked
+}
+
+pub fn calculate_apy(total_locked: f64, gton_price: f64, amount_per_day: i64) -> f64 {
+    // total earn per year / total locked on contract
+    // all values are compatible to gton
+    (365 * amount_per_day) as f64 / total_locked * gton_price
 }
 
 
@@ -103,29 +107,40 @@ pub struct FarmsData {
     farm_linear_address: String,
 }
 
+#[derive(Insertable,Queryable,Clone,Debug,AsChangeset)]
+#[table_name = "farms"]
+pub struct UpdateFarm {
+    id: i64,
+    farmed: f64,
+    apy: f64,
+    addresses_in: i32,
+    lp_price: f64
+}
+
 impl FarmsData {
-    fn get_pools(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<FarmsData> {
+    fn get_farms(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<FarmsData> {
         diesel::sql_query("SELECT p.id, c.gton_address, c.coingecko_id, c.node_url, p.pool_address 
         FROM chains AS c 
         LEFT JOIN dexes AS d ON d.chain_id = c.id 
         LEFT JOIN pools AS p ON d.id = p.dex_id;").get_results::<FarmsData>(&conn.get().unwrap())
         .unwrap()
     }
-    fn set_tvl(id: i64, tvl: f64, conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> () {
-        diesel::update(pools::table)
-        .filter(pools::id.eq(id))
-        .set(pools::tvl.eq(tvl))
-        .execute(&conn.get().unwrap())
-        .unwrap();
+    fn get_gton_price(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> f64 {
+         gton_price::table
+            .select(gton_price::price)
+            .order_by(gton_price::market_time.asc())
+            .limit(1)
+            .get_result::<f64>(&conn)
+            .map_err(|e|e.into())
+            .unwrap()
     }
-    fn set_gton_reserves(
-        id: i64, 
-        reserves: f64, 
+    fn update_farm_data(
+        data: UpdateFarm,
         conn: Arc<Pool<ConnectionManager<PgConnection>>>
     ) -> () {
-        diesel::update(pools::table)
-        .filter(pools::id.eq(id))
-        .set(pools::gton_reserves.eq(reserves))
+        diesel::update(farms::table)
+        .filter(farms::id.eq(data.id))
+        .set(data)
         .execute(&conn.get().unwrap())
         .unwrap();
     }
@@ -154,10 +169,25 @@ impl FarmUpdater {
         }
     }
     pub async fn update_farms(&self) -> () {
+        let ftm_web3 = create_instance("https://rpcapi.fantom.network");
         loop {
         let farms: Vec<FarmsData> = FarmsData::get_farms(self.pool.clone());
+        let gton_price = FarmsData::get_gton_price(self.pool.clone())
         for farm in farms {
             let web3 = create_instance(&farm.node_url);
+            let locked = get_locked_amount(&web3, string_to_h160(farm.pool_address), string_to_h160(farm.lock_address)).await;
+            let farmed: f64 = farmed_from_farm(&ftm_web3, string_to_h160(farm.farm_linear_address)).await;
+            let total_supply = get_total_supply(&web3, string_to_h160(farm.pool_address)).await;
+            let lp_price: f64 = calc_lp_price(farm.tvl, total_supply);
+            let addresses_in = count_farm_users(farm.token_id, &ftm_web3, self.lp_keeper).await;
+            let apy = calculate_apy(locked, gton_price, 10);
+            FarmsData::update_farm_data(UpdateFarm {
+                id: farm.id,
+                farmed,
+                lp_price,
+                addresses_in,
+                apy
+            }, self.pool.clone())
             }
         sleep(Duration::from_secs((15) as u64)).await;
         }

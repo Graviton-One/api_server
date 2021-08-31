@@ -18,3 +18,28 @@ table! {
         tvl -> Float8,
     }
 }
+
+table! {
+    farms (id) {
+        id -> BigInt,
+        pool_id -> BigInt,
+        allocation -> Int4,
+        farmed -> Float8,
+        assigned -> Float8,
+        apy -> Float8,
+        active -> Bool,
+        addresses_in -> Int4,
+        lp_price -> Float8,
+        lock_address -> Varchar,
+        farm_linear -> Varchar,
+        token_id -> Int4,
+    }
+}
+
+table! {
+    gton_price (id) {
+        id -> Int4,
+        price -> Float8,
+        market_time -> Timestamp,
+    }
+}
