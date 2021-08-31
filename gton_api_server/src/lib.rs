@@ -14,6 +14,7 @@ pub mod fee_giver;
 pub mod gton_stats;
 pub mod users;
 pub mod voting;
+pub mod transactions;
 //pub mod pool_stats;
 pub mod chain;
 
