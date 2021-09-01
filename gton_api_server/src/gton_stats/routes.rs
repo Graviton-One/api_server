@@ -49,6 +49,13 @@ pub async fn tvl_list (
     Ok(HttpResponse::Ok().json(r))
 }
 
+pub async fn farms_list (
+    pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+    let conn = pool.get()?;
+    let r = FarmsData::get(&conn).await?;
+    Ok(HttpResponse::Ok().json(r))
+}
 pub async fn reserves_list (
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
