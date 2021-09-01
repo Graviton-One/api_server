@@ -1,7 +1,7 @@
 create table gton_farms(
     id BIGSERIAL primary key,
     pool_id BIGINT references pools(id) UNIQUE,
-    allocation numeric NOT NULL,
+    allocation BIGINT NOT NULL,
     farmed DOUBLE PRECISION not null,
     assigned DOUBLE PRECISION not null,
     apy DOUBLE PRECISION not null,
