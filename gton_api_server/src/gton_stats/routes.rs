@@ -7,7 +7,8 @@ use super::db::{
     UsersValues,
     TotalValues,
     ReservesData,
-    TvlData
+    TvlData,
+    FarmsData
 };
 use serde::{Serialize,Deserialize};
 use actix_web_dev::error::{
@@ -19,6 +20,7 @@ pub fn stats_routes(cfg: &mut web::ServiceConfig) {
         .route("/price", web::post().to(gton_cost))
         .route("/tvl_list", web::get().to(tvl_list))
         .route("/reserves_list", web::get().to(reserves_list))
+        .route("/farms", web::get().to(farms_list))
 
     );
 }
@@ -47,6 +49,13 @@ pub async fn tvl_list (
     Ok(HttpResponse::Ok().json(r))
 }
 
+pub async fn farms_list (
+    pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+    let conn = pool.get()?;
+    let r = FarmsData::get(&conn).await?;
+    Ok(HttpResponse::Ok().json(r))
+}
 pub async fn reserves_list (
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
