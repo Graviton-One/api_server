@@ -30,6 +30,7 @@ table! {
         active -> Bool,
         addresses_in -> Int4,
         lp_price -> Float8,
+        liquidity -> Float8,
         lock_address -> Varchar,
         farm_linear -> Varchar,
         token_id -> Int4,

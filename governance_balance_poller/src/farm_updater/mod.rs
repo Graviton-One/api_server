@@ -84,8 +84,8 @@ pub fn calc_lp_liquidity(lp_price: f64, lp_locked: f64) -> f64 {
 
 pub fn calculate_apy(total_locked: f64, gton_price: f64, amount_per_day: i64) -> f64 {
     // total earn per year / total locked on contract
-    // all values are compatible to gton
-    (365 * amount_per_day) as f64 / total_locked / gton_price
+    // all values are compatible to dollar value
+    (365 * amount_per_day) as f64 * gton_price / total_locked * 100 as f64
 }
 
 #[derive(Insertable,Queryable,Clone,Debug,AsChangeset)]
@@ -95,7 +95,8 @@ pub struct UpdateFarm {
     farmed: f64,
     apy: f64,
     addresses_in: i32,
-    lp_price: f64
+    lp_price: f64,
+    liquidity: f64
 }
 
 #[derive(Default, Debug, Clone, QueryableByName)]
@@ -187,18 +188,21 @@ impl FarmUpdater {
             println!("locked {}", locked);
             let farmed: f64 = farmed_from_farm(&ftm_web3, farm.farm_linear.parse().unwrap()).await;
             let total_supply = get_total_supply(&web3, pool_address).await;
+            println!("total  {}", total_supply);
             let lp_price: f64 = calc_lp_price(farm.tvl, total_supply);
             println!("id {}", farm.token_id);
             println!("lpkeeper {}", &self.lp_keeper);
+            let liquidity = calc_lp_liquidity(lp_price, locked);
             let token_id: U256 = U256::from(farm.token_id);
             let addresses_in = count_farm_users(token_id, &ftm_web3, self.lp_keeper).await;
-            let apy = calculate_apy(locked, gton_price, 10);
+            let apy = calculate_apy(liquidity, gton_price, 10);
             FarmsData::update_farm_data(UpdateFarm {
                 id: farm.id,
                 farmed,
                 lp_price,
                 addresses_in,
-                apy
+                apy,
+                liquidity
             }, self.pool.clone())
             }
         sleep(Duration::from_secs((15) as u64)).await;
