@@ -20,7 +20,7 @@ table! {
 }
 
 table! {
-    farms (id) {
+    gton_farms (id) {
         id -> BigInt,
         pool_id -> BigInt,
         allocation -> Int4,

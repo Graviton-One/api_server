@@ -10,7 +10,7 @@ use tokio::time::{
 };
 use std::sync::Arc;
 use crate::schema::{
-    farms,
+    gton_farms,
 };
 
 use ethcontract::web3::{
@@ -46,10 +46,10 @@ pub async fn count_farm_users(token_id: i32, ftm_web3: &Web3Instance, lp_keeper:
     let contract = Contract::from_json(
         ftm_web3.eth(),
         lp_keeper,
-        include_bytes!("./abi/lp_keeper.json"),
+        include_bytes!("./abi/lpkeeper.json"),
     ).expect("error contract creating");
     contract
-        .query("totalTokenUsers", token_id, None, Options::default(), None).await.unwrap()
+        .query("totalTokenUsers", (token_id,), None, Options::default(), None).await.unwrap()
 }
 
 pub async fn farmed_from_farm(ftm_web3: &Web3Instance, farm_address: Address) -> f64 {
@@ -88,6 +88,15 @@ pub fn calculate_apy(total_locked: f64, gton_price: f64, amount_per_day: i64) ->
     (365 * amount_per_day) as f64 / total_locked * gton_price
 }
 
+#[derive(Insertable,Queryable,Clone,Debug,AsChangeset)]
+#[table_name = "gton_farms"]
+pub struct UpdateFarm {
+    id: i64,
+    farmed: f64,
+    apy: f64,
+    addresses_in: i32,
+    lp_price: f64
+}
 
 #[derive(Default, Debug, Clone, QueryableByName)]
 pub struct FarmsData {
@@ -99,30 +108,23 @@ pub struct FarmsData {
     node_url: String,
     #[sql_type = "Text"]
     pool_address: String,
-    #[sql_type = "Int4"]
+    #[sql_type = "Integer"]
     token_id: i32,
     #[sql_type = "Text"]
     lock_address: String,
     #[sql_type = "Text"]
-    farm_linear_address: String,
+    farm_linear: String,
 }
 
-#[derive(Insertable,Queryable,Clone,Debug,AsChangeset)]
-#[table_name = "farms"]
-pub struct UpdateFarm {
-    id: i64,
-    farmed: f64,
-    apy: f64,
-    addresses_in: i32,
-    lp_price: f64
-}
 
 impl FarmsData {
     fn get_farms(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<FarmsData> {
-        diesel::sql_query("SELECT p.id, c.gton_address, c.coingecko_id, c.node_url, p.pool_address 
-        FROM chains AS c 
-        LEFT JOIN dexes AS d ON d.chain_id = c.id 
-        LEFT JOIN pools AS p ON d.id = p.dex_id;").get_results::<FarmsData>(&conn.get().unwrap())
+        diesel::sql_query("SELECT f.id, p.tvl, p.pool_address, c.node_url, f.lock_address, f.farm_linear, f.token_id 
+        FROM gton_farms AS f
+        LEFT JOIN pools AS p ON p.id = f.pool_id
+        LEFT JOIN dexes AS d ON d.id = p.dex_id 
+        LEFT JOIN chains AS c ON c.id = d.chain_id;
+        ").get_results::<FarmsData>(&conn.get().unwrap())
         .unwrap()
     }
     fn get_gton_price(conn: &PgConnection) -> f64 {
@@ -137,8 +139,8 @@ impl FarmsData {
         data: UpdateFarm,
         conn: Arc<Pool<ConnectionManager<PgConnection>>>
     ) -> () {
-        diesel::update(farms::table)
-        .filter(farms::id.eq(data.id))
+        diesel::update(gton_farms::table)
+        .filter(gton_farms::id.eq(data.id))
         .set(data)
         .execute(&conn.get().unwrap())
         .unwrap();
@@ -147,7 +149,7 @@ impl FarmsData {
 
 pub struct FarmUpdater {
     pool: Arc<Pool<ConnectionManager<PgConnection>>>,
-    pgconn: Pool<ConnectionManager<PgConnection>>,
+    pgconn: PgConnection,
     lp_keeper: Address
 }
 
@@ -157,29 +159,38 @@ pub fn string_to_h160(string: String) -> ethcontract::H160 {
 
 impl FarmUpdater {
     pub fn new() -> Self {
+        let db_url = std::env::var("DATABASE_URL").expect("missing db url");
+        let lp_keeper: Address = "0xA0447eE66E44BF567FF9287107B0c3D2F88efD93".parse().unwrap();
         let manager = ConnectionManager::<PgConnection>::new(
-            std::env::var("DATABASE_URL").expect("missing db url"),
+            &db_url,
         );
-        let pgconn = Pool::builder().build(manager).expect("pool build");
+        let pgconn = PgConnection::establish(&db_url).unwrap();
 
-        let pool = std::sync::Arc::new(pgconn);
+        let pool = Pool::builder().build(manager).expect("pool build");
+
+        let pool = std::sync::Arc::new(pool);
         FarmUpdater {
             pgconn,
             pool,
-            lp_keeper: string_to_h160(String::from("0xA0447eE66E44BF567FF9287107B0c3D2F88efD93"))
+            lp_keeper,
         }
     }
     pub async fn update_farms(&self) -> () {
         let ftm_web3 = create_instance("https://rpcapi.fantom.network");
         loop {
-        let farms: Vec<FarmsData> = FarmsData::get_farms(self.pgconn.clone());
-        let gton_price = FarmsData::get_gton_price(self.pool.clone());
+        let farms: Vec<FarmsData> = FarmsData::get_farms(self.pool.clone());
+        let gton_price = FarmsData::get_gton_price(&self.pgconn);
         for farm in farms {
             let web3 = create_instance(&farm.node_url);
-            let locked = get_locked_amount(&web3, string_to_h160(farm.pool_address), string_to_h160(farm.lock_address)).await;
-            let farmed: f64 = farmed_from_farm(&ftm_web3, string_to_h160(farm.farm_linear_address)).await;
-            let total_supply = get_total_supply(&web3, string_to_h160(farm.pool_address)).await;
+            let pool_address: Address = farm.pool_address.parse().unwrap();
+            let locked = get_locked_amount(&web3,  pool_address, farm.lock_address.parse().unwrap()).await;
+            println!("locked {}", locked);
+            let farmed: f64 = farmed_from_farm(&ftm_web3, farm.farm_linear.parse().unwrap()).await;
+            let total_supply = get_total_supply(&web3, pool_address).await;
             let lp_price: f64 = calc_lp_price(farm.tvl, total_supply);
+            println!("id {}", farm.token_id);
+            println!("lpkeeper {}", &self.lp_keeper);
+
             let addresses_in = count_farm_users(farm.token_id, &ftm_web3, self.lp_keeper).await;
             let apy = calculate_apy(locked, gton_price, 10);
             FarmsData::update_farm_data(UpdateFarm {
