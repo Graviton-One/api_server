@@ -42,7 +42,7 @@ pub async fn get_total_supply(web3: &Web3Instance, pool: Address) -> f64 {
     prepare_amount(res, 18)
 }
 
-pub async fn count_farm_users(token_id: i32, ftm_web3: &Web3Instance, lp_keeper: Address) -> i32 {
+pub async fn count_farm_users(token_id: U256, ftm_web3: &Web3Instance, lp_keeper: Address) -> i32 {
     let contract = Contract::from_json(
         ftm_web3.eth(),
         lp_keeper,
@@ -85,7 +85,7 @@ pub fn calc_lp_liquidity(lp_price: f64, lp_locked: f64) -> f64 {
 pub fn calculate_apy(total_locked: f64, gton_price: f64, amount_per_day: i64) -> f64 {
     // total earn per year / total locked on contract
     // all values are compatible to gton
-    (365 * amount_per_day) as f64 / total_locked * gton_price
+    (365 * amount_per_day) as f64 / total_locked / gton_price
 }
 
 #[derive(Insertable,Queryable,Clone,Debug,AsChangeset)]
@@ -190,8 +190,8 @@ impl FarmUpdater {
             let lp_price: f64 = calc_lp_price(farm.tvl, total_supply);
             println!("id {}", farm.token_id);
             println!("lpkeeper {}", &self.lp_keeper);
-
-            let addresses_in = count_farm_users(farm.token_id, &ftm_web3, self.lp_keeper).await;
+            let token_id: U256 = U256::from(farm.token_id);
+            let addresses_in = count_farm_users(token_id, &ftm_web3, self.lp_keeper).await;
             let apy = calculate_apy(locked, gton_price, 10);
             FarmsData::update_farm_data(UpdateFarm {
                 id: farm.id,
