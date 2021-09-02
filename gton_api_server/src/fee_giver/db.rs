@@ -18,8 +18,7 @@ pub struct Voter {
     pub vote_times: i32,
 }
 
-#[derive(Insertable,Serialize,Deserialize)]
-#[table_name = "voters"]
+#[derive(Serialize,Deserialize)]
 pub struct VoterInstance {
     pub round_id: i32,
     pub user_address: String,

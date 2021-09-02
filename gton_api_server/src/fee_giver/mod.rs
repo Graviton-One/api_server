@@ -13,6 +13,7 @@ pub fn create_instance(rpc_url: &str) -> Web3Instance {
     web3::Web3::new(http)
 }
 
+
 // pub async fn check_balance(
 //     address: &str, 
 //     web3: Web3Instance,
@@ -29,6 +30,7 @@ pub fn create_instance(rpc_url: &str) -> Web3Instance {
 //         .query("balance", user_address, None, Options::default(), None)
 //         .await
 //         .expect("error getting user balance");
+
 
 //     res.gt(&U256::zero())
 // }
