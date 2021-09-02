@@ -1,4 +1,4 @@
-FROM rustlang/rust:nightly as builder
+FROM rustlang/rust:nightly-buster as builder
 
 RUN USER=root cargo new --bin gton_api_server
 WORKDIR /gton_api_server

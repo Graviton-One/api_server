@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: relay-extractor
+  namespace: graviton-api
+  labels:
+    app: relay-extractor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: relay-extractor
+  template:
+    metadata:
+      labels:
+        app: relay-extractor
+    spec:
+      volumes:
+        - name: config-data-volume
+          persistentVolumeClaim:
+            claimName: static-pv-claim
+      containers:
+        - name: relay-extractor
+          volumeMounts:
+          - name: config-data-volume
+            mountPath: /cola_extractor/cola.yaml
+            subPath: srv/relay_extractors/cola.yaml
+          image: 'docker.io/badconfig/cola_extractor:latest'
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: RELAY_EXTRACTOR_DATABASE_URL
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: TELEGRAM_BOT_TOKEN
+            - name: TELEGRAM_LOG_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: TELEGRAM_LOG_CHAT_ID
+          imagePullPolicy: Always
+      restartPolicy: Always
+
+  ---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: filebrowser
+  namespace: graviton-api
+spec:
+  selector:
+    matchLabels:
+      app: filebrowser # has to match .spec.template.metadata.labels
+  serviceName: filebrowser
+  replicas: 1 # by default is 1
+  template:
+    metadata:
+      labels:
+        app: filebrowser # has to match .spec.selector.matchLabels
+    spec:
+      volumes:
+        - name: filebrowser-data-volume
+          persistentVolumeClaim:
+            claimName: static-pv-claim
+      containers:
+      - name: filebrowser
+        image: filebrowser/filebrowser:latest
+        ports:
+        - containerPort: 80
+          name: filebrowser
+        volumeMounts:
+        - name: filebrowser-data-volume
+          mountPath: /srv
+          subPath: srv
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: governance-into-extractor-api
+  namespace: graviton-api
+  labels:
+    app: governance-into-extractor-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: governance-into-extractor-api
+  template:
+    metadata:
+      labels:
+        app: governance-into-extractor-api
+    spec:
+      containers:
+        - name: governance-into-extractor-api
+          image: 'docker.io/badconfig/extractor_api:latest'
+          env:
+            - name: SERVER_BIND_PORT
+              value: "8088"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: poller
+                  key: GOVERNANCE_EXTRACTOR_DATABASE_URL
+          imagePullPolicy: Always
+      restartPolicy: Always
+
+  ---
+
+  apiVersion: v1
+kind: Service
+metadata:
+  name: governance-into-extractor-api
+  namespace: graviton-api
+spec:
+  selector:
+    app: governance-into-extractor-api
+  type: NodePort
+  ports:
+    - name: governance-into-extractor-api
+      protocol: TCP
+      port: 8088
+      targetPort: 8088

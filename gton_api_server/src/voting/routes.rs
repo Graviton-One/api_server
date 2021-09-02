@@ -14,6 +14,7 @@ pub fn voting_routes(cfg: &mut web::ServiceConfig) {
         .route("/list", web::post().to(get_votings))
         .route("/save", web::post().to(insert_voting))
         .route("/update", web::post().to(update_voting))
+        .route("/new_refferal_offer", web::post().to(add_pool_offer))
     );
 }
 
@@ -54,4 +55,17 @@ pub async fn insert_voting (
     let conn = pool.get()?;
     let r = data.insert(&conn).await?;
     Ok(HttpResponse::Ok().json(r))
+}
+
+use super::db::PoolOffer;
+
+pub async fn add_pool_offer (
+    data: web::Json<PoolOffer>,
+    pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+    let conn = pool.get()?;
+    let r = data.load_secure_id(&conn).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "secure_id": r
+    })))
 }

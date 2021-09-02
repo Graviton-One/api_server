@@ -3,3 +3,4 @@
 /gton_api_server/.env
 /async-scheduler/target
 /async-scheduler/.env
+*target

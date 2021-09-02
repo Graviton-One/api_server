@@ -1,6 +1,7 @@
 pub mod db;
 pub mod routes;
 
+use ethcontract::web3;
 use web3::contract::{Contract, Options};
 use ethcontract::prelude::*;
 use super::ChainConfig;
@@ -24,7 +25,6 @@ pub async fn check_balance(
     ).expect("error contract creating");
 
     let user_address: U256 = U256::from(address);
-
     let res: U256 = contract
         .query("balance", user_address, None, Options::default(), None)
         .await
