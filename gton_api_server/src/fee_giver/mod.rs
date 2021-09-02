@@ -24,10 +24,10 @@ pub async fn check_balance(
         include_bytes!("../abi/balance_keeper.json"),
     ).expect("error contract creating");
 
-    let user_address: H160 = address.parse().unwrap();
+    let user_address: U256 = U256::from_dec_str(address).unwrap();
 
     let res: U256 = contract
-        .query("userBalance", user_address, None, Options::default(), None)
+        .query("balance", user_address, None, Options::default(), None)
         .await
         .expect("error getting user balance");
 
