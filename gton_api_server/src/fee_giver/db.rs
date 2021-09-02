@@ -20,7 +20,7 @@ pub struct Voter {
 #[table_name = "voters"]
 pub struct VoterInstance {
     pub round_id: i32,
-    pub user_address: String,
+    pub user_address: i32,
 }
 
 #[derive(QueryableByName,Serialize,Deserialize)]
