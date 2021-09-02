@@ -14,7 +14,7 @@ pub fn create_instance(rpc_url: &str) -> Web3Instance {
 }
 
 pub async fn check_balance(
-    address: i32, 
+    address: &str, 
     web3: Web3Instance,
     cfg: &ChainConfig,
 ) -> bool {
@@ -23,8 +23,8 @@ pub async fn check_balance(
         cfg.balance_keeper,
         include_bytes!("../abi/balance_keeper.json"),
     ).expect("error contract creating");
-
-    let user_address: U256 = U256::from(address);
+    let id: i32 = address.parse().unwrap();
+    let user_address: U256 = U256::from(id);
     let res: U256 = contract
         .query("balance", user_address, None, Options::default(), None)
         .await

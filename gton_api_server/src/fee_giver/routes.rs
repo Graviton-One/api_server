@@ -13,6 +13,17 @@ use actix_web_dev::error::{
     ApiError,
     ErrorType,
 };
+use serde::{
+    Serialize,
+    Deserialize,
+};
+
+#[derive(Serialize,Deserialize)]
+pub struct VoterQuery {
+    pub round_id: i32,
+    pub user_id: String,
+    pub user_address: String,
+}
 
 pub async fn get_vote_count (
     pool: web::Data<DbPool>, 
@@ -25,12 +36,12 @@ pub async fn get_vote_count (
 
 pub async fn check_vote (
     pool: web::Data<DbPool>, 
-    data: web::Json<VoterInstance>,
+    data: web::Json<VoterQuery>,
     config: web::Data<std::sync::Arc<ChainConfig>>,
 ) -> Result<HttpResponse> {
     let conn = pool.get()?;
     let instance = create_instance("https://rpcapi.fantom.network");
-    if !check_balance(&data.user_address, instance.clone(),&config).await {
+    if !check_balance(&data.user_id, instance.clone(),&config).await {
         return Err(ApiError{
             code: 500,
             message: "something went wrong".to_string(),
@@ -44,7 +55,12 @@ pub async fn check_vote (
             error_type: ErrorType::InternalError,
         });
     }
-    if !data.check(&conn).await? {
+    let address = &data.user_address;
+    let voter = VoterInstance {
+        round_id: data.round_id,
+        user_address: address.to_string()
+    };
+    if !voter.check(&conn).await? {
         return Err(ApiError{
             code: 500,
             message: "something went wrong".to_string(),
