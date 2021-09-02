@@ -14,10 +14,11 @@ pub fn create_instance(rpc_url: &str) -> Web3Instance {
 }
 
 pub async fn check_balance(
-    address: i32, 
+    address: &str, 
     web3: Web3Instance,
     cfg: &ChainConfig,
 ) -> bool {
+    let address: i32 = address.parse().unwrap();
     let contract = Contract::from_json(
         web3.eth(),
         cfg.balance_keeper,
