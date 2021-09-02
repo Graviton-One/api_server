@@ -1,4 +1,5 @@
-use crate::schema::voters;
+use crate::schema::{voters, users};
+use std::str::FromStr;
 use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
@@ -7,6 +8,7 @@ use serde::{
     Serialize,
     Deserialize,
 };
+use bigdecimal::BigDecimal;
 
 #[derive(Queryable,Deserialize,Serialize,Clone)]
 pub struct Voter {
@@ -26,6 +28,16 @@ pub struct VoterInstance {
 pub struct Allowance {
     #[sql_type="diesel::sql_types::Bool"]
     res: bool,
+}
+
+
+pub fn check_balance(address: &str, conn: &PgConnection,) -> bool {
+    let res = users::table
+    .select(users::governance_balance)
+    .filter(users::external_address.eq(address))
+    .get_result::<BigDecimal>(conn)
+    .unwrap();
+    res > BigDecimal::from_str("0").unwrap()
 }
 
 impl VoterInstance {

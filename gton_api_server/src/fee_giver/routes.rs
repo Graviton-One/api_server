@@ -1,9 +1,8 @@
 use actix_web::{web, HttpResponse};
-use super::db::VoterInstance;
+use super::db::{VoterInstance, check_balance};
 use crate::DbPool;
 use super::{
     create_instance,
-    check_balance,
     check_voting_id,
     transfer_fee,
 };
@@ -12,6 +11,10 @@ use actix_web_dev::error::{
     Result,
     ApiError,
     ErrorType,
+};
+use serde::{
+    Serialize,
+    Deserialize,
 };
 
 pub async fn get_vote_count (
@@ -30,7 +33,7 @@ pub async fn check_vote (
 ) -> Result<HttpResponse> {
     let conn = pool.get()?;
     let instance = create_instance("https://rpcapi.fantom.network");
-    if !check_balance(&data.user_address, instance.clone(),&config).await {
+    if !check_balance(&data.user_address, &conn) {
         return Err(ApiError{
             code: 500,
             message: "something went wrong".to_string(),
@@ -44,7 +47,12 @@ pub async fn check_vote (
             error_type: ErrorType::InternalError,
         });
     }
-    if !data.check(&conn).await? {
+    let address = &data.user_address;
+    let voter = VoterInstance {
+        round_id: data.round_id,
+        user_address: address.to_string()
+    };
+    if !voter.check(&conn).await? {
         return Err(ApiError{
             code: 500,
             message: "something went wrong".to_string(),
