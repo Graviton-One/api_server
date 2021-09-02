@@ -13,25 +13,25 @@ pub fn create_instance(rpc_url: &str) -> Web3Instance {
     web3::Web3::new(http)
 }
 
-pub async fn check_balance(
-    address: &str, 
-    web3: Web3Instance,
-    cfg: &ChainConfig,
-) -> bool {
-    let contract = Contract::from_json(
-        web3.eth(),
-        cfg.balance_keeper,
-        include_bytes!("../abi/balance_keeper.json"),
-    ).expect("error contract creating");
-    let id: i32 = address.parse().unwrap();
-    let user_address: U256 = U256::from(id);
-    let res: U256 = contract
-        .query("balance", user_address, None, Options::default(), None)
-        .await
-        .expect("error getting user balance");
+// pub async fn check_balance(
+//     address: &str, 
+//     web3: Web3Instance,
+//     cfg: &ChainConfig,
+// ) -> bool {
+//     let contract = Contract::from_json(
+//         web3.eth(),
+//         cfg.balance_keeper,
+//         include_bytes!("../abi/balance_keeper.json"),
+//     ).expect("error contract creating");
+//     let id: i32 = address.parse().unwrap();
+//     let user_address: U256 = U256::from(id);
+//     let res: U256 = contract
+//         .query("balance", user_address, None, Options::default(), None)
+//         .await
+//         .expect("error getting user balance");
 
-    res.gt(&U256::zero())
-}
+//     res.gt(&U256::zero())
+// }
 
 pub async fn check_voting_id(
     round_id: i32, 
