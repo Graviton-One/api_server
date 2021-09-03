@@ -18,3 +18,15 @@ table! {
         tvl -> Float8,
     }
 }
+
+table! {
+    farm_transactions (id) {
+        id -> BigInt,
+        farm_id -> BigInt,
+        amount -> Numeric,
+        tx_type -> Varchar,
+        tx_hash -> Varchar,
+        stamp -> Timestamp,
+        user_address -> Varchar,
+    }
+}

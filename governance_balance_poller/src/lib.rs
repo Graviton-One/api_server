@@ -31,6 +31,8 @@ pub mod reserves_poller;
 pub mod db_state;
 pub mod schema;
 pub mod user_address_mapping;
+pub mod farm_transactions;
+
 
 #[tokio::main]
 async fn main() {
