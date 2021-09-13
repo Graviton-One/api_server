@@ -1,5 +1,5 @@
 use bigdecimal::{BigDecimal, ToPrimitive};
-use std::{str::FromStr, thread::current};
+use std::{str::FromStr};
 use chrono::NaiveDateTime;
 use diesel::{
     sql_types::*,
@@ -30,6 +30,19 @@ use web3::{
     self,
     types::*,
 };
+
+pub fn create_instance(rpc_url: &str) -> Web3Instance {
+    let http = web3::transports::Http::new(String::from(rpc_url).as_str())
+        .expect("error creating web3 instance");
+    web3::Web3::new(http)
+}
+pub fn prepare_reserve(reserve: U256, dec: i64) -> f64 {
+    reserve.to_f64_lossy() / 10_f64.powf(dec as f64)
+}
+
+pub fn string_to_h160(string: String) -> ethcontract::H160 {
+    ethcontract::H160::from_slice(String::from(string).as_bytes())
+}
 
 pub type Web3Instance = web3::Web3<ethcontract::Http>;
 
@@ -63,18 +76,6 @@ impl PollerState {
             .get_result::<i64>(&conn.get().unwrap())
             .unwrap()
     }
-}
-pub fn create_instance(rpc_url: &str) -> Web3Instance {
-    let http = web3::transports::Http::new(String::from(rpc_url).as_str())
-        .expect("error creating web3 instance");
-    web3::Web3::new(http)
-}
-pub fn prepare_reserve(reserve: U256, dec: i64) -> f64 {
-    reserve.to_f64_lossy() / 10_f64.powf(dec as f64)
-}
-
-pub fn string_to_h160(string: String) -> ethcontract::H160 {
-    ethcontract::H160::from_slice(String::from(string).as_bytes())
 }
 
 #[derive(Default, Debug, Clone, QueryableByName)]
@@ -123,6 +124,15 @@ pub struct FarmTxn {
     user_address: String,
 }
 
+impl FarmTxn {
+    pub fn insert(&self, conn:  Arc<Pool<ConnectionManager<PgConnection>>>, ) -> () {
+        diesel::insert_into(farm_transactions::table)
+        .values(self)
+        .execute(&conn.get().unwrap())
+        .unwrap();
+    }
+}
+
 pub struct TxnData {
     amount: BigDecimal,
     tx_hash: String,
@@ -136,7 +146,6 @@ pub async fn track_txns(
     current_block: BlockNumber,
     method_topic: H256,
     farm_address: Address,
-    pool: Arc<Pool<ConnectionManager<PgConnection>>>,
 ) -> Vec<TxnData> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(method_topic);
@@ -207,7 +216,12 @@ impl FarmsTransactions {
             let last_block = PollerState::get(pool.poller_id, self.pool.clone()).await;
             let current_block = web3.eth().block_number().await.unwrap();
             let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
-             BlockNumber::Number(current_block), self.add_txn_topic.clone(), farm_address, pool)
+             BlockNumber::Number(current_block), self.add_txn_topic.clone(), 
+             pool.lock_address.parse().unwrap()).await;
+            for item in res {
+
+            }
+
             }
         sleep(Duration::from_secs((15) as u64)).await;
         }
