@@ -1,12 +1,12 @@
-use std::error::Error;
 use bigdecimal::{BigDecimal, ToPrimitive};
-use std::str::FromStr;
+use std::{str::FromStr, thread::current};
 use chrono::NaiveDateTime;
 use diesel::{
     sql_types::*,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use web3::types::U64;
 use web3::ethabi::{
     Topic,
     TopicFilter,
@@ -21,7 +21,6 @@ use tokio::time::{
   Duration,
 };
 use std::sync::Arc;
-use serde_json::Value;
 use crate::schema::{
     farm_transactions,
     pollers_data,
@@ -29,7 +28,6 @@ use crate::schema::{
 
 use web3::{
     self,
-    contract::{Contract, Options},
     types::*,
 };
 
@@ -75,9 +73,6 @@ pub fn prepare_reserve(reserve: U256, dec: i64) -> f64 {
     reserve.to_f64_lossy() / 10_f64.powf(dec as f64)
 }
 
-fn hex_to_string<T: ToHex>(h: T) -> String {
-    "0x".to_owned() + &h.encode_hex::<String>()
-}
 pub fn string_to_h160(string: String) -> ethcontract::H160 {
     ethcontract::H160::from_slice(String::from(string).as_bytes())
 }
@@ -86,15 +81,17 @@ pub fn string_to_h160(string: String) -> ethcontract::H160 {
 pub struct Farms {
     #[sql_type = "BigInt"]
     id: i64,
+    #[sql_type = "Integer"]
+    poller_id: i32,
     #[sql_type = "Text"]
-    farm_address: String,
+    lock_address: String,
     #[sql_type = "Text"]
     node_url: String,
 }
 
 impl Farms {
     fn get_farm_addresses(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<Farms> {
-        diesel::sql_query("SELECT f.id, f.lock_address as farm_address, c.node_url 
+        diesel::sql_query("SELECT f.id, f.lock_address as lock_address, c.node_url 
         FROM gton_farms AS f 
         LEFT JOIN pools AS p ON f.pool_id = p.id 
         LEFT JOIN dexes AS d ON p.dex_id = d.id 
@@ -207,6 +204,10 @@ impl FarmsTransactions {
         let pools: Vec<Farms> = Farms::get_farm_addresses(self.pool.clone());
         for pool in pools {
             let web3 = create_instance(&pool.node_url);
+            let last_block = PollerState::get(pool.poller_id, self.pool.clone()).await;
+            let current_block = web3.eth().block_number().await.unwrap();
+            let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
+             BlockNumber::Number(current_block), self.add_txn_topic.clone(), farm_address, pool)
             }
         sleep(Duration::from_secs((15) as u64)).await;
         }
