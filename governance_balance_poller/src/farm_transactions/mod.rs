@@ -1,5 +1,6 @@
 use std::error::Error;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, ToPrimitive};
+use std::str::FromStr;
 use chrono::NaiveDateTime;
 use diesel::{
     sql_types::*,
@@ -33,19 +34,6 @@ use web3::{
 };
 
 pub type Web3Instance = web3::Web3<ethcontract::Http>;
-
-
-#[derive(Insertable)]
-#[table_name = "farm_transactions"]
-pub struct FarmTxn {
-    id: i64,
-    farm_id: i64,
-    amount: BigDecimal,
-    tx_type: String,
-    tx_hash: String,
-    stamp: NaiveDateTime,
-    user_address: String,
-}
 
 #[derive(Serialize,Deserialize,Queryable)]
 pub struct PollerState {
@@ -115,52 +103,73 @@ impl Farms {
     }
 }
 
+async fn fetch_stamp(web3: Web3Instance, block_number: U64) -> NaiveDateTime {
+    let block: Block<H256> = web3
+        .eth()
+        .block(BlockNumber::Number(block_number).into())
+        .await
+        .unwrap().unwrap();
+    let stamp_str = block.timestamp.to_string();
+    let stamp_big = BigDecimal::from_str(&stamp_str).unwrap();
+    let stamp_i64 = stamp_big.to_i64().unwrap();
+    NaiveDateTime::from_timestamp(stamp_i64, 0)
+}
 
+#[derive(Insertable)]
+#[table_name = "farm_transactions"]
+pub struct FarmTxn {
+    farm_id: i64,
+    amount: BigDecimal,
+    tx_type: String,
+    tx_hash: String,
+    stamp: NaiveDateTime,
+    user_address: String,
+}
+
+pub struct TxnData {
+    amount: BigDecimal,
+    tx_hash: String,
+    stamp: NaiveDateTime,
+    user_address: String,
+}
 
 pub async fn track_txns(
     web3: Web3Instance,
     prev_block: BlockNumber, 
     current_block: BlockNumber,
     method_topic: H256,
-    balance_keeper: Address,
     farm_address: Address,
     pool: Arc<Pool<ConnectionManager<PgConnection>>>,
-) -> Vec<Data> {
+) -> Vec<TxnData> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(method_topic);
 
         let filter = FilterBuilder::default()
                     .from_block(prev_block) 
                     .to_block(current_block)
-                    .address(vec![balance_keeper])
+                    .address(vec![farm_address])
                     .topic_filter(topics)
                     .build();
         let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
         //println!("starting from block {:?} to block {:?} ...",prev_block,current_block);
-        let mut r: Vec<Data> = Vec::new();
-        for block in result {
+        let mut r: Vec<TxnData> = Vec::new();
+        for log in result {
             use std::ops::Index;
 
-            let from = hex::encode(block.topics[1]);
+            let from = hex::encode(log.topics[2]);
             let from = &from[from.len()-40..from.len()];
-            let t: Address = from.parse().unwrap();
 
-            println!("TRANSACTION {:?}",block.transaction_hash);
-            println!("from: {:?} == farm: {:?}",t,farm_address);
-            if t == farm_address {
-                println!("skipping");
-                continue;
-            }
-            let to = block.topics[2].as_bytes();
-            let to: U256 = to.into();
-            let from = "0x".to_string() + from;
-            let from = from.to_lowercase();
+            let to = hex::encode(log.topics[3]);
+            let to = &to[to.len()-40..to.len()];
 
-            let amount: U256 = block.data.0.index(0..32).into();
+            let tx_hash = log.transaction_hash.unwrap().to_string();
+            let amount: U256 = log.data.0.index(0..32).into();
+            let stamp: NaiveDateTime = fetch_stamp(web3.clone(), log.block_number.unwrap()).await;
 
-            let d = Data{
-                from: from,
-                to: to.to_string(),
+            let d = TxnData{
+                user_address: from.to_string(),
+                tx_hash,
+                stamp,
                 amount: BigDecimal::from_str(&amount.to_string()).unwrap(),
             };
             r.push(d);
@@ -184,8 +193,8 @@ impl FarmsTransactions {
 
         let pool = std::sync::Arc::new(pool);
 
-        let add_txn_topic: H256 = "".parse().unwrap();
-        let remove_txn_topic: H256 = "".parse().unwrap(); 
+        let add_txn_topic: H256 = "0xd6aba49fa5adb7dbc18ab12d057e77c75e5d4b345cf473c7514afbbd6f5fc626".parse().unwrap();
+        let remove_txn_topic: H256 = "0xd99169b5dcb595fb976fee14578e44584c0ebbbf50cf58d568b3100c59f2f4bb".parse().unwrap(); 
 
         FarmsTransactions {
             pool,
@@ -195,20 +204,9 @@ impl FarmsTransactions {
     }
     pub async fn run(&self) -> () {
         loop {
-        let pools: Vec<PoolData> = Farms::get_pools(self.pool.clone());
+        let pools: Vec<Farms> = Farms::get_farm_addresses(self.pool.clone());
         for pool in pools {
             let web3 = create_instance(&pool.node_url);
-            let contract_address: Address = pool.gton_address.parse().unwrap();
-            let contract = Contract::from_json(web3.eth(), contract_address, include_bytes!("abi/erc20.json"))
-            .expect("create erc20 contract");
-            let query_address: Address = pool.pool_address.parse().unwrap();
-            let reserves: U256 = contract
-            .query("balanceOf",  query_address, None, Options::default(), None)
-            .await
-            .expect("error getting gton reserves");
-            // let reserves = BigDecimal::from_str(&reserves.to_string()).unwrap();
-            let reserves = prepare_reserve(reserves, 18);
-            PoolData::set_gton_reserves(pool.id, reserves, self.pool.clone());
             }
         sleep(Duration::from_secs((15) as u64)).await;
         }
