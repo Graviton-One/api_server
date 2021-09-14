@@ -230,7 +230,6 @@ impl FarmsTransactions {
             let web3 = create_instance(&pool.node_url);
             let last_block = PollerState::get(pool.poller_id, self.pool.clone()).await;
             let current_block = web3.eth().block_number().await.unwrap();
-            println!("last {}, current {}", last_block, current_block.low_u64());
                 let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
              BlockNumber::Number(current_block), self.add_txn_topic.clone(), 
              pool.lock_address.parse().unwrap()).await;
@@ -250,19 +249,19 @@ impl FarmsTransactions {
             let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
             BlockNumber::Number(current_block), self.remove_txn_topic.clone(), 
             pool.lock_address.parse().unwrap()).await;
-           for item in res {
-               let txn = FarmTxn {
-                   amount: item.amount,
-                   tx_hash: item.tx_hash,
-                   stamp: item.stamp,
-                   block_number: item.block_number,
-                   user_address: item.user_address,
-                   farm_id: pool.id,
-                   tx_type: "Remove".to_string()
-               };
-               txn.insert(self.pool.clone())
-           }
-           PollerState::save(pool.poller_id, current_block.low_u64() as i64, self.pool.clone()).await;
+            for item in res {
+                let txn = FarmTxn {
+                    amount: item.amount,
+                    tx_hash: item.tx_hash,
+                    stamp: item.stamp,
+                    block_number: item.block_number,
+                    user_address: item.user_address,
+                    farm_id: pool.id,
+                    tx_type: "Remove".to_string()
+                };
+                txn.insert(self.pool.clone())
+            }
+            PollerState::save(pool.poller_id, current_block.low_u64() as i64 + 1, self.pool.clone()).await;
 
             }
         sleep(Duration::from_secs((15) as u64)).await;
