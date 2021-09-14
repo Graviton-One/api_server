@@ -52,7 +52,6 @@ impl BalanceInOutValues {
         current_block: BlockNumber,
         method_topic: H256,
         balance_keeper: Address,
-        pool: Arc<Pool<ConnectionManager<PgConnection>>>,
     ) -> Self {
         //getting add events
             let mut topics = TopicFilter::default();

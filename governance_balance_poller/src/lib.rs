@@ -9,7 +9,3 @@ pub mod schema;
 pub mod user_address_mapping;
 pub mod farm_updater;
 
-#[tokio::main]
-async fn main() {
-
-}
