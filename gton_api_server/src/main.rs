@@ -1,4 +1,4 @@
-use actix_web::{App, HttpRequest, HttpServer, Responder, web, HttpResponse};
+use actix_web::{App, HttpServer, web};
 
 use diesel::PgConnection;
 use diesel::r2d2::ConnectionManager;
@@ -22,8 +22,7 @@ use gton_api_server::{
     users::routes::users_routes,
     gton_stats::routes::stats_routes,
     voting::routes::voting_routes,
-    transactions::routes::txn_routes,
-
+    // transactions::routes::txn_routes,
 };
 
 #[derive(Debug, Serialize, Deserialize)]

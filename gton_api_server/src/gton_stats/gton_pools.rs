@@ -2,14 +2,11 @@ use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
 };
-use bigdecimal::BigDecimal;
 use serde::{
     Serialize,
-    Deserialize,
 };
 use diesel::sql_types::{
     Varchar,
-    Numeric,
     Float8,
     BigInt
 };

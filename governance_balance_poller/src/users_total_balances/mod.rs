@@ -1,19 +1,12 @@
 pub mod logic;
-use diesel::r2d2;
 use tokio::time::{
         sleep,
       Duration,
 };
 use std::sync::Arc;
-use bigdecimal::BigDecimal;
-use std::str::FromStr;
 
 use web3::transports::Http;
 use web3::{Web3, types::*};
-use web3::ethabi::{
-    Topic,
-    TopicFilter,
-};
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
@@ -93,7 +86,6 @@ impl Poller {
                 current_block, 
                 self.add_method_topic, 
                 self.balance_keeper, 
-                self.pool.clone()
             ).await;
 
             let sub = BalanceInOutValues::new(
@@ -102,7 +94,6 @@ impl Poller {
                 current_block, 
                 self.sub_method_topic, 
                 self.balance_keeper, 
-                self.pool.clone()
             ).await;
 
             let conn = self.pool.get().unwrap();

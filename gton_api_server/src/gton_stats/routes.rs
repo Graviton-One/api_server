@@ -1,11 +1,9 @@
 use crate::DbPool;
 use chrono::NaiveDateTime;
 //use super::db::GtonPrice;
-use actix_web::{HttpResponse, web::{self, Query}};
+use actix_web::{HttpResponse, web::{self}};
 use super::db::{
     GtonPrice,
-    UsersValues,
-    TotalValues,
     ReservesData,
     TvlData
 };

@@ -1,12 +1,8 @@
-use diesel::r2d2;
 use tokio::time::{
         sleep,
       Duration,
 };
 use std::sync::Arc;
-use bigdecimal::BigDecimal;
-use std::str::FromStr;
-
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
@@ -33,7 +29,6 @@ pub struct Users {
 }
 
 
-use crate::db_state::PollerState;
 use ethcontract::prelude::*;
 pub type Web3Instance = web3::Web3<ethcontract::Http>;
 
@@ -41,7 +36,6 @@ pub struct Poller {
     pool: Arc<Pool<ConnectionManager<PgConnection>>>,
     web3: Web3Instance,
     balance_keeper: Address,
-    delay: u64,
 }
 
 impl Poller {
@@ -61,14 +55,10 @@ impl Poller {
             .expect("failed to get address");
         let balance_keeper: Address = balance_keeper.parse().unwrap();
 
-        let delay: u64 = std::env::var("DELAY")
-            .expect("failed to get address").parse::<u64>().unwrap();
-
         Poller {
             pool,
             web3,
             balance_keeper,
-            delay,
         }
     }
 
@@ -78,8 +68,6 @@ impl Poller {
                 self.balance_keeper,
                 include_bytes!("../abi/balance_keeper.json"),
             ).expect("error contract creating");
-
-
 
         loop {
             let new_users = users::table
