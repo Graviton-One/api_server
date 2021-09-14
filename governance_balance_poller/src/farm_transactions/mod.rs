@@ -230,21 +230,23 @@ impl FarmsTransactions {
             let web3 = create_instance(&pool.node_url);
             let last_block = PollerState::get(pool.poller_id, self.pool.clone()).await;
             let current_block = web3.eth().block_number().await.unwrap();
-                let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
+            let current_block = current_block - U64::from(10); // delay to keep all blocks mined
+            let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
              BlockNumber::Number(current_block), self.add_txn_topic.clone(), 
              pool.lock_address.parse().unwrap()).await;
-                for item in res {
-                    let txn = FarmTxn {
-                        amount: item.amount,
-                        tx_hash: item.tx_hash,
-                        stamp: item.stamp,
-                        block_number: item.block_number,
-                        user_address: item.user_address,
-                        farm_id: pool.id,
-                        tx_type: "Add".to_string()
-                    };
-                    txn.insert(self.pool.clone())
-                }
+// TODO Rewrite to one txn
+            for item in res {
+                let txn = FarmTxn {
+                    amount: item.amount,
+                    tx_hash: item.tx_hash,
+                    stamp: item.stamp,
+                    block_number: item.block_number,
+                    user_address: item.user_address,
+                    farm_id: pool.id,
+                    tx_type: "Add".to_string()
+                };
+                txn.insert(self.pool.clone())
+            }
 
             let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
             BlockNumber::Number(current_block), self.remove_txn_topic.clone(), 
