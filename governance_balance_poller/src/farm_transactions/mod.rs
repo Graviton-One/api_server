@@ -22,7 +22,7 @@ use tokio::time::{
 };
 use std::sync::Arc;
 use crate::schema::{
-    farm_transactions,
+    farms_transactions,
     pollers_data,
 };
 
@@ -92,7 +92,7 @@ pub struct Farms {
 
 impl Farms {
     fn get_farm_addresses(conn: Arc<Pool<ConnectionManager<PgConnection>>>) -> Vec<Farms> {
-        diesel::sql_query("SELECT f.id, f.lock_address as lock_address, c.node_url 
+        diesel::sql_query("SELECT f.id, f.lock_address as lock_address, c.node_url, f.poller_id
         FROM gton_farms AS f 
         LEFT JOIN pools AS p ON f.pool_id = p.id 
         LEFT JOIN dexes AS d ON p.dex_id = d.id 
@@ -106,27 +106,39 @@ async fn fetch_stamp(web3: Web3Instance, block_number: U64) -> NaiveDateTime {
         .eth()
         .block(BlockNumber::Number(block_number).into())
         .await
-        .unwrap().unwrap();
+        .unwrap()
+        .unwrap();
     let stamp_str = block.timestamp.to_string();
     let stamp_big = BigDecimal::from_str(&stamp_str).unwrap();
     let stamp_i64 = stamp_big.to_i64().unwrap();
     NaiveDateTime::from_timestamp(stamp_i64, 0)
 }
 
+fn hex_to_string<T: ToHex>(h: T) -> String {
+    "0x".to_owned() + &h.encode_hex::<String>()
+}
+
+fn parse_block_number(block_number: U64) -> i64 {
+    let block_number_str = block_number.to_string();
+    let block_number_big = BigDecimal::from_str(&block_number_str).unwrap();
+    block_number_big.to_i64().unwrap()
+}
+
 #[derive(Insertable)]
-#[table_name = "farm_transactions"]
+#[table_name = "farms_transactions"]
 pub struct FarmTxn {
     farm_id: i64,
     amount: BigDecimal,
     tx_type: String,
     tx_hash: String,
     stamp: NaiveDateTime,
+    block_number: i64,
     user_address: String,
 }
 
 impl FarmTxn {
     pub fn insert(&self, conn:  Arc<Pool<ConnectionManager<PgConnection>>>, ) -> () {
-        diesel::insert_into(farm_transactions::table)
+        diesel::insert_into(farms_transactions::table)
         .values(self)
         .execute(&conn.get().unwrap())
         .unwrap();
@@ -138,6 +150,7 @@ pub struct TxnData {
     tx_hash: String,
     stamp: NaiveDateTime,
     user_address: String,
+    block_number: i64
 }
 
 pub async fn track_txns(
@@ -156,26 +169,28 @@ pub async fn track_txns(
                     .address(vec![farm_address])
                     .topic_filter(topics)
                     .build();
-        let result: Vec<web3::types::Log> = web3.eth().logs(filter).await.unwrap();
-        //println!("starting from block {:?} to block {:?} ...",prev_block,current_block);
+        let result= web3.eth().logs(filter).await;
         let mut r: Vec<TxnData> = Vec::new();
-        for log in result {
+        if result.is_err() {
+            return r;
+        }
+
+        for log in result.unwrap() {
             use std::ops::Index;
 
             let from = hex::encode(log.topics[2]);
-            let from = &from[from.len()-40..from.len()];
+            let from = "0x".to_owned() + &from[from.len()-40..from.len()];
 
-            let to = hex::encode(log.topics[3]);
-            let to = &to[to.len()-40..to.len()];
-
-            let tx_hash = log.transaction_hash.unwrap().to_string();
+            let tx_hash = hex_to_string(log.transaction_hash.unwrap());
             let amount: U256 = log.data.0.index(0..32).into();
             let stamp: NaiveDateTime = fetch_stamp(web3.clone(), log.block_number.unwrap()).await;
+            let block_number: i64 = parse_block_number(log.block_number.unwrap());
 
             let d = TxnData{
                 user_address: from.to_string(),
                 tx_hash,
                 stamp,
+                block_number,
                 amount: BigDecimal::from_str(&amount.to_string()).unwrap(),
             };
             r.push(d);
@@ -215,20 +230,22 @@ impl FarmsTransactions {
             let web3 = create_instance(&pool.node_url);
             let last_block = PollerState::get(pool.poller_id, self.pool.clone()).await;
             let current_block = web3.eth().block_number().await.unwrap();
-            let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
+            println!("last {}, current {}", last_block, current_block.low_u64());
+                let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
              BlockNumber::Number(current_block), self.add_txn_topic.clone(), 
              pool.lock_address.parse().unwrap()).await;
-            for item in res {
-                let txn = FarmTxn {
-                    amount: item.amount,
-                    tx_hash: item.tx_hash,
-                    stamp: item.stamp,
-                    user_address: item.user_address,
-                    farm_id: pool.id,
-                    tx_type: "Add".to_string()
-                };
-                txn.insert(self.pool.clone())
-            }
+                for item in res {
+                    let txn = FarmTxn {
+                        amount: item.amount,
+                        tx_hash: item.tx_hash,
+                        stamp: item.stamp,
+                        block_number: item.block_number,
+                        user_address: item.user_address,
+                        farm_id: pool.id,
+                        tx_type: "Add".to_string()
+                    };
+                    txn.insert(self.pool.clone())
+                }
 
             let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
             BlockNumber::Number(current_block), self.remove_txn_topic.clone(), 
@@ -238,12 +255,14 @@ impl FarmsTransactions {
                    amount: item.amount,
                    tx_hash: item.tx_hash,
                    stamp: item.stamp,
+                   block_number: item.block_number,
                    user_address: item.user_address,
                    farm_id: pool.id,
                    tx_type: "Remove".to_string()
                };
                txn.insert(self.pool.clone())
            }
+           PollerState::save(pool.poller_id, current_block.low_u64() as i64, self.pool.clone()).await;
 
             }
         sleep(Duration::from_secs((15) as u64)).await;

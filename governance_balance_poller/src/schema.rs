@@ -20,13 +20,14 @@ table! {
 }
 
 table! {
-    farm_transactions (id) {
+    farms_transactions (id) {
         id -> BigInt,
         farm_id -> BigInt,
         amount -> Numeric,
         tx_type -> Varchar,
         tx_hash -> Varchar,
         stamp -> Timestamp,
+        block_number -> BigInt,
         user_address -> Varchar,
     }
 }
