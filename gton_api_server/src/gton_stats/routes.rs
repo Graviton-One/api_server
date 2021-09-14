@@ -4,8 +4,6 @@ use chrono::NaiveDateTime;
 use actix_web::{HttpResponse, web::{self, Query}};
 use super::db::{
     GtonPrice,
-    UsersValues,
-    TotalValues,
     ReservesData,
     TvlData,
     FarmsData
@@ -19,8 +17,11 @@ pub fn stats_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/stats")
         .route("/price", web::post().to(gton_cost))
         .route("/tvl_list", web::get().to(tvl_list))
+        .route("/pool", web::get().to(pool_data))
         .route("/reserves_list", web::get().to(reserves_list))
-        .route("/farms", web::get().to(farms_list))
+        .route("/farms_list", web::get().to(farms_list))
+        .route("/farm", web::get().to(farm_data))
+
 
     );
 }
@@ -31,6 +32,10 @@ pub struct TimeInterval {
     to: NaiveDateTime,
 }
 
+#[derive(Serialize,Deserialize)]
+pub struct Pool {
+    address: String,
+}
 
 pub async fn gton_cost (
     duration: web::Json<TimeInterval>,
@@ -49,6 +54,15 @@ pub async fn tvl_list (
     Ok(HttpResponse::Ok().json(r))
 }
 
+pub async fn pool_data (
+    query: Query<Pool>,
+    pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+    let conn = pool.get()?;
+    let r = TvlData::get_one(query.address.as_str(), &conn).await?;
+    Ok(HttpResponse::Ok().json(r))
+}
+
 pub async fn farms_list (
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
@@ -56,6 +70,16 @@ pub async fn farms_list (
     let r = FarmsData::get(&conn).await?;
     Ok(HttpResponse::Ok().json(r))
 }
+
+pub async fn farm_data (
+    query: Query<Pool>,
+    pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+    let conn = pool.get()?;
+    let r = FarmsData::get_one(query.address.as_str() ,&conn).await?;
+    Ok(HttpResponse::Ok().json(r))
+}
+
 pub async fn reserves_list (
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {

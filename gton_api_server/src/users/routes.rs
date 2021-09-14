@@ -9,10 +9,8 @@ use actix_web_dev::error::{
 };
 
 use crate::gton_stats::db::{
-    GtonPrice,
     UsersValues,
     TotalValues,
-    TvlData,
 };
 pub fn users_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/users")

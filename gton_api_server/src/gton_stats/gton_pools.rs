@@ -2,16 +2,14 @@ use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
 };
-use bigdecimal::BigDecimal;
 use serde::{
     Serialize,
-    Deserialize,
 };
 use diesel::sql_types::{
     Varchar,
-    Numeric,
     Float8,
-    BigInt
+    BigInt,
+    Text
 };
 
 #[derive(QueryableByName, Debug, Clone, Serialize)]
@@ -49,6 +47,21 @@ pub struct TvlData {
 }
 
 impl TvlData {
+    pub async fn get_one(
+        address: &str, 
+        conn: &PgConnection,
+    ) -> Result<Vec<TvlData>> {
+        let r = diesel::sql_query(
+            "SELECT p.id, p.name, p.swap_link, p.pair_link, p.image AS pool_image, p.tvl, d.small_image AS amm_image, d.name AS amm_name, c.chain_icon AS chain_image 
+            FROM chains AS c 
+            LEFT JOIN dexes AS d ON d.chain_id = c.id 
+            LEFT JOIN pools AS p ON d.id = p.dex_id
+            WHERE p.pool_address = ($1) ;")
+            .bind::<Text, _>(&address)
+            .get_results::<TvlData>(conn)?;
+        Ok(r)
+    }
+
     pub async fn get( 
         conn: &PgConnection,
     ) -> Result<Vec<TvlData>> {
