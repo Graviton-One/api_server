@@ -219,8 +219,31 @@ impl FarmsTransactions {
              BlockNumber::Number(current_block), self.add_txn_topic.clone(), 
              pool.lock_address.parse().unwrap()).await;
             for item in res {
-
+                let txn = FarmTxn {
+                    amount: item.amount,
+                    tx_hash: item.tx_hash,
+                    stamp: item.stamp,
+                    user_address: item.user_address,
+                    farm_id: pool.id,
+                    tx_type: "Add".to_string()
+                };
+                txn.insert(self.pool.clone())
             }
+
+            let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
+            BlockNumber::Number(current_block), self.remove_txn_topic.clone(), 
+            pool.lock_address.parse().unwrap()).await;
+           for item in res {
+               let txn = FarmTxn {
+                   amount: item.amount,
+                   tx_hash: item.tx_hash,
+                   stamp: item.stamp,
+                   user_address: item.user_address,
+                   farm_id: pool.id,
+                   tx_type: "Remove".to_string()
+               };
+               txn.insert(self.pool.clone())
+           }
 
             }
         sleep(Duration::from_secs((15) as u64)).await;
