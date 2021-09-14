@@ -21,7 +21,7 @@ pub fn stats_routes(cfg: &mut web::ServiceConfig) {
         .route("/reserves_list", web::get().to(reserves_list))
         .route("/farms_list", web::get().to(farms_list))
         .route("/farm", web::get().to(farm_data))
-
+        .route("/superb_farm", web::get().to(get_largest))
 
     );
 }
@@ -71,6 +71,13 @@ pub async fn farms_list (
     Ok(HttpResponse::Ok().json(r))
 }
 
+pub async fn get_largest (
+    pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+    let conn = pool.get()?;
+    let r = FarmsData::get_largest_farm(&conn).await?;
+    Ok(HttpResponse::Ok().json(r))
+}
 pub async fn farm_data (
     query: Query<Pool>,
     pool: web::Data<DbPool>,

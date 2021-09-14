@@ -45,6 +45,21 @@ pub struct FarmsData {
 }
 
 impl FarmsData {
+    pub async fn get_largest_farm( 
+        conn: &PgConnection,
+    ) -> Result<Vec<Self>> {
+        let r = diesel::sql_query(
+            "SELECT f.id, p.name, p.image as pool_image, p.pair_link, d.name as amm_name, d.image as amm_image, p.image AS pool_image, 
+            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image
+            FROM gton_farms AS f 
+            INNER JOIN pools AS p ON p.id = f.pool_id 
+            INNER JOIN dexes AS d ON d.id = p.dex_id 
+            LEFT JOIN chains AS c ON c.id = d.chain_id
+            ORDER BY f.apy desc
+            LIMIT 1;")
+            .get_results::<Self>(conn)?;
+        Ok(r)
+    }
     pub async fn get_one( 
         address: &str,
         conn: &PgConnection,
@@ -61,7 +76,6 @@ impl FarmsData {
             .get_results::<Self>(conn)?;
         Ok(r)
     }
-
 
     pub async fn get( 
         conn: &PgConnection,
