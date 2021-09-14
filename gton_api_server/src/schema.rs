@@ -1125,6 +1125,7 @@ table! {
         gton_reserves -> Float8,
         tvl -> Float8,
         dex_id -> Nullable<Int8>,
+        token_pair_image -> String,
     }
 }
 

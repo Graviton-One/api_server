@@ -30,6 +30,8 @@ pub struct FarmsData {
     pub chain_image: String,
     #[sql_type="Varchar"]
     pub amm_name: String,
+    #[sql_type="Varchar"]
+    pub token_image: String,
     #[sql_type="Float8"]
     pub tvl: f64,
     #[sql_type="Float8"]
@@ -50,7 +52,7 @@ impl FarmsData {
     ) -> Result<Vec<Self>> {
         let r = diesel::sql_query(
             "SELECT f.id, p.name, p.image as pool_image, p.pair_link, d.name as amm_name, d.image as amm_image, p.image AS pool_image, 
-            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image
+            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image, p.token_pair_image as token_image
             FROM gton_farms AS f 
             INNER JOIN pools AS p ON p.id = f.pool_id 
             INNER JOIN dexes AS d ON d.id = p.dex_id 
@@ -66,7 +68,7 @@ impl FarmsData {
     ) -> Result<Vec<Self>> {
         let r = diesel::sql_query(
             "SELECT f.id, p.name, p.image as pool_image, p.pair_link, d.name as amm_name, d.image as amm_image, p.image AS pool_image, 
-            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image
+            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image,  p.token_pair_image as token_image
             FROM gton_farms AS f 
             INNER JOIN pools AS p ON p.id = f.pool_id 
             INNER JOIN dexes AS d ON d.id = p.dex_id 
@@ -82,7 +84,7 @@ impl FarmsData {
     ) -> Result<Vec<Self>> {
         let r = diesel::sql_query(
             "SELECT f.id, p.name, p.image as pool_image, p.pair_link, d.name as amm_name, d.image as amm_image, p.image AS pool_image, 
-            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image
+            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image,  p.token_pair_image as token_image
             FROM gton_farms AS f 
             INNER JOIN pools AS p ON p.id = f.pool_id 
             INNER JOIN dexes AS d ON d.id = p.dex_id 
