@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate diesel;
-#[macro_use]
 extern crate r2d2;
 #[macro_use]
 extern crate serde_json;
