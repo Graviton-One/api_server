@@ -6,5 +6,5 @@ create table farms_transactions (
     user_address varchar not null,
     farm_id BIGSERIAL not null,
     stamp Timestamp not null,
-    block_id BIGINT not null
+    block_number BIGINT not null
 )
