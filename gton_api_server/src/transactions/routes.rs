@@ -18,7 +18,6 @@ pub fn txn_routes(cfg: &mut web::ServiceConfig) {
 #[serde(tag = "type")]
 enum TxnType {
     All,
-    Swap,
     Remove,
     Add
 }
@@ -38,7 +37,6 @@ pub async fn get_transactions (
     let res;
     match query.txn_type {
         TxnType::All => res = Transaction::get_all(query.limit, query.offset, &conn).await,
-        TxnType::Swap => res = Transaction::get_swap(query.limit, query.offset, &conn).await,
         TxnType::Remove => res = Transaction::get_remove(query.limit, query.offset, &conn).await,
         TxnType::Add => res = Transaction::get_add(query.limit, query.offset, &conn).await,
     }
