@@ -11,6 +11,7 @@ use web3::ethabi::{
     Topic,
     TopicFilter,
 };
+use diesel::result::Error;
 use serde::{
     Serialize,
     Deserialize,
@@ -145,6 +146,28 @@ impl FarmTxn {
     }
 }
 
+pub fn push_data(
+    num: i64,
+    poller_id: i32,
+    data: Vec<FarmTxn>, 
+    conn: &PgConnection
+) -> Result<(),Error> {
+    conn.build_transaction()
+        .read_write()
+        .run::<(), diesel::result::Error, _>(|| {
+            for d in data {
+                diesel::insert_into(farms_transactions::table)
+                    .values(d)
+                    .execute(conn)?;
+            }
+            diesel::update(pollers_data::table.filter(pollers_data::id.eq(poller_id)))
+                .set(pollers_data::block_id.eq(num))
+                .execute(conn)?;
+            Ok(())
+        })?;
+    Ok(())
+}
+
 pub struct TxnData {
     amount: BigDecimal,
     tx_hash: String,
@@ -200,6 +223,7 @@ pub async fn track_txns(
 
 pub struct FarmsTransactions {
     pool: Arc<Pool<ConnectionManager<PgConnection>>>,
+    postgres: Pool<ConnectionManager<PgConnection>>,
     add_txn_topic: H256,
     remove_txn_topic: H256,
 }
@@ -210,15 +234,16 @@ impl FarmsTransactions {
         let manager = ConnectionManager::<PgConnection>::new(
             std::env::var("DATABASE_URL").expect("missing db url"),
         );
-        let pool = Pool::builder().build(manager).expect("pool build");
+        let postgres = Pool::builder().build(manager).expect("pool build");
 
-        let pool = std::sync::Arc::new(pool);
+        let pool = std::sync::Arc::new(postgres.clone());
 
         let add_txn_topic: H256 = "0xd6aba49fa5adb7dbc18ab12d057e77c75e5d4b345cf473c7514afbbd6f5fc626".parse().unwrap();
         let remove_txn_topic: H256 = "0xd99169b5dcb595fb976fee14578e44584c0ebbbf50cf58d568b3100c59f2f4bb".parse().unwrap(); 
 
         FarmsTransactions {
             pool,
+            postgres,
             add_txn_topic,
             remove_txn_topic
         }
@@ -231,6 +256,7 @@ impl FarmsTransactions {
             let last_block = PollerState::get(pool.poller_id, self.pool.clone()).await;
             let current_block = web3.eth().block_number().await.unwrap();
             let current_block = current_block - U64::from(10); // delay to keep all blocks mined
+            let mut data: Vec<FarmTxn> = Vec::new(); 
             let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
              BlockNumber::Number(current_block), self.add_txn_topic.clone(), 
              pool.lock_address.parse().unwrap()).await;
@@ -245,7 +271,7 @@ impl FarmsTransactions {
                     farm_id: pool.id,
                     tx_type: "Add".to_string()
                 };
-                txn.insert(self.pool.clone())
+                data.push(txn);
             }
 
             let res = track_txns(web3.clone(), BlockNumber::Number(U64::from(last_block)),
@@ -261,12 +287,12 @@ impl FarmsTransactions {
                     farm_id: pool.id,
                     tx_type: "Remove".to_string()
                 };
-                txn.insert(self.pool.clone())
+                data.push(txn);
             }
-            PollerState::save(pool.poller_id, current_block.low_u64() as i64 + 1, self.pool.clone()).await;
+            let pushed = push_data(current_block.low_u64() as i64 + 1, pool.poller_id, data, &self.postgres.clone().get().unwrap());
 
             }
-        sleep(Duration::from_secs((15) as u64)).await;
+        sleep(Duration::from_secs((60*15) as u64)).await;
         }
     }
 }
