@@ -3,17 +3,15 @@ use diesel::prelude::*;
 use actix_web_dev::error::{
     Result,
 };
-use bigdecimal::BigDecimal;
 use serde::{
     Serialize,
-    Deserialize,
 };
 use diesel::sql_types::{
     Varchar,
     Bool,
-    Numeric,
     Float8,
-    BigInt
+    BigInt,
+    Text
 };
 
 #[derive(QueryableByName, Debug, Clone, Serialize)]
@@ -32,6 +30,8 @@ pub struct FarmsData {
     pub chain_image: String,
     #[sql_type="Varchar"]
     pub amm_name: String,
+    #[sql_type="Varchar"]
+    pub token_image: String,
     #[sql_type="Float8"]
     pub tvl: f64,
     #[sql_type="Float8"]
@@ -47,12 +47,44 @@ pub struct FarmsData {
 }
 
 impl FarmsData {
+    pub async fn get_largest_farm( 
+        conn: &PgConnection,
+    ) -> Result<Vec<Self>> {
+        let r = diesel::sql_query(
+            "SELECT f.id, p.name, p.image as pool_image, p.pair_link, d.name as amm_name, d.image as amm_image, p.image AS pool_image, 
+            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image, p.token_pair_image as token_image
+            FROM gton_farms AS f 
+            INNER JOIN pools AS p ON p.id = f.pool_id 
+            INNER JOIN dexes AS d ON d.id = p.dex_id 
+            LEFT JOIN chains AS c ON c.id = d.chain_id
+            ORDER BY f.apy desc
+            LIMIT 1;")
+            .get_results::<Self>(conn)?;
+        Ok(r)
+    }
+    pub async fn get_one( 
+        address: &str,
+        conn: &PgConnection,
+    ) -> Result<Vec<Self>> {
+        let r = diesel::sql_query(
+            "SELECT f.id, p.name, p.image as pool_image, p.pair_link, d.name as amm_name, d.image as amm_image, p.image AS pool_image, 
+            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image,  p.token_pair_image as token_image
+            FROM gton_farms AS f 
+            INNER JOIN pools AS p ON p.id = f.pool_id 
+            INNER JOIN dexes AS d ON d.id = p.dex_id 
+            LEFT JOIN chains AS c ON c.id = d.chain_id
+            WHERE f.lock_address = ($1);")
+            .bind::<Text, _>(&address)
+            .get_results::<Self>(conn)?;
+        Ok(r)
+    }
+
     pub async fn get( 
         conn: &PgConnection,
     ) -> Result<Vec<Self>> {
         let r = diesel::sql_query(
             "SELECT f.id, p.name, p.image as pool_image, p.pair_link, d.name as amm_name, d.image as amm_image, p.image AS pool_image, 
-            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image
+            p.tvl, f.active as status, f.apy, f.farmed, f.allocation, f.assigned, c.chain_icon as chain_image,  p.token_pair_image as token_image
             FROM gton_farms AS f 
             INNER JOIN pools AS p ON p.id = f.pool_id 
             INNER JOIN dexes AS d ON d.id = p.dex_id 

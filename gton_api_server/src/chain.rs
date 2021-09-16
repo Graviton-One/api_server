@@ -17,7 +17,6 @@ impl ChainID {
             Self::Binance => String::from("https://bsc-dataseed1.binance.org"),
             Self::Fantom => String::from("https://rpcapi.fantom.network"),
             Self::Polygon => String::from("https://rpc-mainnet.maticvigil.com"),
-            _ => unreachable!(),
         }
     }
 

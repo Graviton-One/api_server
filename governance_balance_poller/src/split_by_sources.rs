@@ -89,7 +89,6 @@ pub async fn farms_tracker(
     current_block: BlockNumber,
     farm_method_topic: H256,
     farm_address: Address,
-    pool: Arc<Pool<ConnectionManager<PgConnection>>>,
 ) -> Vec<Data> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(farm_method_topic);
@@ -134,7 +133,6 @@ pub async fn plain_tracker(
     method_topic: H256,
     balance_keeper: Address,
     farm_address: Address,
-    pool: Arc<Pool<ConnectionManager<PgConnection>>>,
 ) -> Vec<Data> {
         let mut topics = TopicFilter::default();
         topics.topic0 = Topic::This(method_topic);
@@ -186,7 +184,6 @@ pub struct KeeperExtractor {
     add_method_topic: H256,
     farm_method_topic: H256,
     poller_id: i32,
-    delay: u64, 
 }
 
 impl KeeperExtractor {
@@ -212,11 +209,6 @@ impl KeeperExtractor {
             .parse()
             .unwrap();
 
-        let delay: u64 = std::env::var("DELAY")
-            .expect("failed to get address")
-            .parse()
-            .unwrap();
-
         let farmer = std::env::var("FARM_AGGREGATOR_ADDRESS")
             .expect("failed to get address");
         let farmer: Address = farmer.parse().unwrap();
@@ -237,7 +229,6 @@ impl KeeperExtractor {
             add_method_topic,
             farm_method_topic,
             poller_id,
-            delay,
         }
     }
 
@@ -256,15 +247,13 @@ impl KeeperExtractor {
                 current_block, 
                 self.add_method_topic, 
                 self.balance_keeper, 
-                self.farmer, 
-                self.pool.clone()).await;
+                self.farmer).await;
             let mut ap = farms_tracker(
                 &self.web3, 
                 prev_block, 
                 current_block, 
                 self.farm_method_topic, 
-                self.farmer, 
-                self.pool.clone()).await;
+                self.farmer).await;
             r.append(&mut ap);
             Data::insert(r,self.pool.clone()).await;
             PollerState::save(1, 

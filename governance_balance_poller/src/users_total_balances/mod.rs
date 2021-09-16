@@ -86,7 +86,6 @@ impl Poller {
                 current_block, 
                 self.add_method_topic, 
                 self.balance_keeper, 
-                self.pool.clone()
             ).await;
 
             let sub = BalanceInOutValues::new(
@@ -95,7 +94,6 @@ impl Poller {
                 current_block, 
                 self.sub_method_topic, 
                 self.balance_keeper, 
-                self.pool.clone()
             ).await;
 
             let conn = self.pool.get().unwrap();
